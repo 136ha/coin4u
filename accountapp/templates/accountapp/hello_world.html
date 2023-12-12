@@ -5,12 +5,21 @@
 <div style="height: 30rem;">
     <form action="/account/hello_world/" method="post">
         {% csrf_token %}
-        <input type="submit" class="btn btn-primary" value="POST">
+        <div>
+            <input type="text" name="hello_world_input">
+        </div>
+        <div>
+            <input type="submit" class="btn btn-primary" value="POST">
+        </div>
     </form>
 
-    <H1>
-        {{ text }}
-    </H1>
+    {% if hello_world_list %}
+        {% for hello_world in hello_world_list %}
+        <h2>
+            {{ hello_world.text }}
+        </h2>
+        {% endfor %}
+    {% endif %}
 </div>
 
 {% endblock %}
