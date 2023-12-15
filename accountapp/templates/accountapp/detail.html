@@ -1,0 +1,27 @@
+{% extends 'base.html' %}}
+{% load bootstrap5 %}
+{% bootstrap_css %}
+{% bootstrap_javascript %}
+{% bootstrap_messages %}
+
+{% block content %}
+
+<div style="text-align: center; max-width: 500px; margin: 4rem auto;">
+    <div>
+        <p>
+            {{ target_user.date_joined }}
+        </p>
+        <h2>
+            {{ target_user.username }}
+        </h2>
+        {% if target_user == user %}
+        <a href="{% url 'accountapp:update' pk=user.pk %}">
+            <p>
+                Change Info
+            </p>
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
