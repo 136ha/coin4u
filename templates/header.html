@@ -1,5 +1,7 @@
 <div style="text-align: center;">
-    <h1>COIN FOR YOU</h1>
+    <a href="{% url 'accountapp:hello_world' %}?next={{ request.path }}" style="text-decoration-line: none; color: black;">
+        <h1>COIN FOR YOU</h1>
+    </a>
     <span>nav1</span>
     <span>nav2</span>
     <span>nav3</span>
@@ -7,6 +9,9 @@
     <!--  login html로 가는데, 로그인하고나면 next에 적은 path로 이동해라라는 뜻  -->
     <a href="{% url 'accountapp:login' %}?next={{ request.path }}">
         <span>login</span>
+    </a>
+    <a href="{% url 'accountapp:create' %}">
+        <span>SignUp</span>
     </a>
     {% else %}
     <a href="{% url 'accountapp:detail' pk=user.pk %}">
