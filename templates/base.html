@@ -3,16 +3,16 @@
 
 {% include 'head.html' %}
 
-<body class="yoon_header_logo">
+<body>
 
     {% include 'header.html' %}
 
-    <hr>
+    <div class="wrapper">
 
-    {% block content %}
-    {% endblock %}
+        {% block content %}
+        {% endblock %}
 
-    <hr>
+    </div>
 
     {% include 'footer.html' %}
 

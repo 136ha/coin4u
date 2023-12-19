@@ -1,12 +1,17 @@
-.yoon_header_logo {
+.header {
     font-family: 'Rubik', sans-serif;
+    text-align: center;
 }
 
-.yoon_footer_logo {
+.footer {
     font-family: 'Rubik', sans-serif;
+    text-align: center;
 }
 
-.yoon_footer_nav {
-    text-align:center;
+a {
+    text-decoration-line: none;
 }
 
+a:hover {
+    color: #FFBF00;
+}

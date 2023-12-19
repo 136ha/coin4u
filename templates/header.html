@@ -1,10 +1,14 @@
-<div style="text-align: center;">
-    <a href="{% url 'accountapp:hello_world' %}?next={{ request.path }}" style="text-decoration-line: none;">
+<div class="header">
+    <a href="{% url 'accountapp:hello_world' %}?next={{ request.path }}">
         <h1>COIN FOR YOU</h1>
     </a>
     <span>Indicator</span>
-    <span>The Great Unwashed</span>
+    <span>Earnings Calendar</span>
     <span>News</span>
+    <span>Forums</span>
+    <a href="{% url 'polls:index' %}?next={{ request.path }}">
+        <span>The Great Unwashed</span>
+    </a>
     {% if not user.is_authenticated %}
     <!--  login html로 가는데, 로그인하고나면 next에 적은 path로 이동해라라는 뜻  -->
     <a href="{% url 'accountapp:login' %}?next={{ request.path }}">
@@ -22,3 +26,4 @@
     </a>
     {% endif %}
 </div>
+<hr>
