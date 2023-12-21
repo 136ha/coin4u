@@ -1,0 +1,88 @@
+<!--https://canvasjs.com/javascript-stockcharts/stockchart-date-time-axis/-->
+<!--https://canvasjs.com/javascript-stockcharts/-->
+{% extends 'base.html' %}}
+{% load bootstrap5 %}
+{% bootstrap_css %}
+{% bootstrap_javascript %}
+{% bootstrap_messages %}
+
+{% block content %}
+
+{% load static %}
+<!--<html>-->
+<!--    <head>-->
+<!--        <title>django-chartjs line chart demo</title>-->
+<!--        &lt;!&ndash;[if lte IE 8]>-->
+<!--            <script src="{% static 'js/excanvas.js' %}"></script>-->
+<!--        <![endif]&ndash;&gt;-->
+<!--    </head>-->
+<!--    <body>-->
+        <h1>Some Line Charts loaded in Ajax!</h1>
+
+<!--        <canvas id="myChart" width="500" height="400"></canvas>-->
+
+<!--        <script type="text/javascript" src="http://code.jquery.com/jquery-1.10.0.min.js"></script>-->
+<!--        <script type="text/javascript" src="https://canvasjs.com/assets/script/jquery-1.11.1.min.js"></script>-->
+<!--        <script type="text/javascript" src="https://cdn.canvasjs.com/canvasjs.stock.min.js"></script>-->
+<!--        <script type="text/javascript" src="{% static 'js/Chart.min.js' %}"></script>-->
+<!--        <script type="text/javascript">-->
+<!--            $.get('{% url "polls:line_chart_json" %}', function(data) {-->
+<!--                var ctx = $("#myChart").get(0).getContext("2d");-->
+<!--                new Chart(ctx, {-->
+<!--                    type: 'line',-->
+<!--                    data: data,-->
+<!--                });-->
+<!--            });-->
+<!--        </script>-->
+        <script type="text/javascript">
+            window.onload = function () {
+              var dps1 = [], dps2= [];
+              var stockChart = new CanvasJS.StockChart("chartContainer",{
+                theme: "light2",
+                exportEnabled: true,
+                title:{
+                  text:"StockChart with Date-Time Axis"
+                },
+                subtitles: [{
+                  text: "Bitcoin Price (in USD)"
+                }],
+                charts: [{
+                  axisX: {
+                    crosshair: {
+                      enabled: true,
+                      snapToDataPoint: true
+                    }
+                  },
+                  axisY: {
+                    prefix: "$"
+                  },
+                  data: [{
+                    type: "candlestick",
+                    yValueFormatString: "$#,###.##",
+                    dataPoints : dps1
+                  }]
+                }],
+                navigator: {
+                  data: [{
+                    dataPoints: dps2
+                  }],
+                  slider: {
+                    minimum: new Date(2023, 04, 01),
+                    maximum: new Date(2023, 12, 01)
+                  }
+                }
+              });
+              $.get('{% url "polls:line_chart_json2" %}', function(data) {
+                for(var i = 0; i < data.length; i++){
+                  dps1.push({x: new Date(data[i].date), y: [Number(data[i].open), Number(data[i].high), Number(data[i].low), Number(data[i].close)]});
+                  dps2.push({x: new Date(data[i].date), y: Number(data[i].close)});
+                }
+                stockChart.render();
+              });
+            }
+        </script>
+    <div id="chartContainer" style="height: 450px; width: 100%;"></div>
+<!--    </body>-->
+<!--</html>-->
+
+{% endblock %}

@@ -1,10 +1,22 @@
-from django.http import HttpResponse, Http404, HttpResponseRedirect
+from datetime import time
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from chartjs.views.lines import BaseLineChartView
+from django.http import HttpResponse, Http404, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 from django.utils import timezone
-from django.views.generic import ListView, DetailView
+from django.views.generic import ListView, DetailView, TemplateView
 
 from polls.models import Question, Choice
+
+from polls.utils import get_data
+from bokeh.plotting import figure, output_file, show
+from bokeh.embed import components
+import pandas as pd
+from math import pi
+import datetime
+import json
 
 
 class PollsIndexView(ListView):
@@ -59,3 +71,36 @@ def vote(request, question_id):
         # return HttpResponseRedirect(reverse("polls:index", args=(question.id,)))
         return HttpResponseRedirect(reverse("polls:index"))
 
+
+class LineChartJSONView(BaseLineChartView):
+    df = get_data('BTC-USD', '15mo')[400:]
+
+    def get_labels(self):
+        # index
+        return self.df.index.tolist()
+
+    def get_providers(self):
+        # column
+        return ["open", "close", "high", "low"]
+
+    def get_data(self):
+        # data
+        return [self.df["open"].tolist(), self.df["close"].tolist(), self.df["high"].tolist(), self.df["low"].tolist()]
+
+def send_data(request):
+    # https://stackoverflow.com/questions/59881433/how-do-i-return-data-from-pandas-dataframe-to-be-returned-by-djangos-jsonrespon
+    df = get_data('BTC-USD', '15mo')
+    result = df.to_json(orient='records')
+    return JsonResponse(json.loads(result), safe=False)
+
+
+# def btcusdt_15m():
+#     sched = BackgroundScheduler()
+#     # interval - 일정주기로 수행(테스트용 10초)
+#     # sched.add_job(job, 'interval', seconds=900, id='get_data')
+#     sched.add_job(job, 'cron', minute="15", second='5', id="btcusdt_15m")
+#     sched.add_job(job, 'cron', minute="30", second='5', id="btcusdt_15m")
+#     sched.add_job(job, 'cron', minute="45", second='5', id="btcusdt_15m")
+#     sched.add_job(job, 'cron', minute="0", second='5', id="btcusdt_15m")
+#
+#     sched.start()

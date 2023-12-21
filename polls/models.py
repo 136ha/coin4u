@@ -29,3 +29,15 @@ class Choice(models.Model):
 
     def __str__(self):
         return self.choice_text
+
+
+class btcusdt_15m(models.Model):
+    timestamp = models.DateTimeField(auto_now=True, null=True, blank=True)
+    open = models.IntegerField(blank=True, null=True)
+    close = models.IntegerField(blank=True, null=True)
+    high = models.IntegerField(blank=True, null=True)
+    low = models.IntegerField(blank=True, null=True)
+    volume = models.IntegerField(blank=True, null=True)
+
+    def __str__(self):
+        return str(self.timestamp)
