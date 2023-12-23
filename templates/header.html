@@ -3,7 +3,9 @@
         <h1>COIN FOR YOU</h1>
     </a>
     <span>Indicator</span>
-    <span>Earnings Calendar</span>
+    <a href="{% url 'calendarapp:calendar' %}?next={{ request.path }}">
+        <span>Earnings Calendar</span>
+    </a>
     <span>News</span>
     <span>Forums</span>
     <a href="{% url 'polls:index' %}?next={{ request.path }}">

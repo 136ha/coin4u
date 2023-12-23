@@ -3,18 +3,22 @@
 
 {% include 'head.html' %}
 
-<body>
+<body class="d-flex flex-column min-vh-100">
 
-    {% include 'header.html' %}
+    <div>
+        {% include 'header.html' %}
+    </div>
 
-    <div class="wrapper">
+    <div>
 
         {% block content %}
         {% endblock %}
 
     </div>
 
-    {% include 'footer.html' %}
+    <div class="py-3 mt-auto">
+        {% include 'footer.html' %}
+    </div>
 
 </body>
 </html>

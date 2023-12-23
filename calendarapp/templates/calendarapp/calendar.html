@@ -1,0 +1,20 @@
+{% extends 'base.html' %}}
+{% load bootstrap5 %}
+{% bootstrap_css %}
+{% bootstrap_javascript %}
+{% bootstrap_messages %}
+
+{% block content %}
+
+<div>
+    <h1 style="text-align: center;">Earnings Calendar</h1>
+    <div class="clearfix">
+        <a class="btn btn-info left" href="{% url 'calendarapp:calendar' %}?{{ prev_month }}"> Previous Month </a>
+        <a class="btn btn-info right" href="{% url 'calendarapp:calendar' %}?{{ next_month }}"> Next Month </a>
+    </div>
+    <div>
+        {{ calendar }}
+    </div>
+</div>
+
+{% endblock %}

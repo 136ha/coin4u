@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'accountapp',
     'profileapp',
     'polls',
+    'calendarapp',
     'django_apscheduler',
     'chartjs',
     'bokeh',
