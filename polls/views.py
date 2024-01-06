@@ -104,3 +104,13 @@ def send_data(request):
 #     sched.add_job(job, 'cron', minute="0", second='5', id="btcusdt_15m")
 #
 #     sched.start()
+
+# https://simpleisbetterthancomplex.com/tutorial/2020/01/19/how-to-use-chart-js-with-django.html
+def population_chart(request):
+    df = get_data('BTC-USD', '15mo')
+    labels = df['date'].tolist()
+    data = df['close'].tolist()
+    return JsonResponse(data={
+        'labels': labels,
+        'data': data,
+    })

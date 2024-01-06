@@ -1,31 +1,40 @@
 <div class="header">
-    <a href="{% url 'accountapp:hello_world' %}?next={{ request.path }}">
+    <!--  TITLE  -->
+    <div>
+        <a href="{% url 'accountapp:hello_world' %}?next={{ request.path }}">
         <h1>COIN FOR YOU</h1>
     </a>
-    <span>Indicator</span>
-    <a href="{% url 'calendarapp:calendar' %}?next={{ request.path }}">
-        <span>Earnings Calendar</span>
-    </a>
-    <span>News</span>
-    <span>Forums</span>
-    <a href="{% url 'polls:index' %}?next={{ request.path }}">
-        <span>The Great Unwashed</span>
-    </a>
-    {% if not user.is_authenticated %}
-    <!--  login html로 가는데, 로그인하고나면 next에 적은 path로 이동해라라는 뜻  -->
-    <a href="{% url 'accountapp:login' %}?next={{ request.path }}">
-        <span>login</span>
-    </a>
-    <a href="{% url 'accountapp:create' %}">
-        <span>SignUp</span>
-    </a>
-    {% else %}
-    <a href="{% url 'accountapp:detail' pk=user.pk %}">
-        <span>MyPage</span>
-    </a>
-    <a href="{% url 'accountapp:logout' %}?next={{ request.path }}">
-        <span>logout</span>
-    </a>
-    {% endif %}
+    </div>
+    <!--  CONTENT  -->
+    <div>
+        <a href="{% url 'indicatorapp:index' %}?next={{ request.path }}">
+            <span>Indicators</span>
+        </a>
+        <a href="{% url 'calendarapp:calendar' %}?next={{ request.path }}">
+            <span>Earnings Calendar</span>
+        </a>
+        <a href="{% url 'newsapp:index' %}?next={{ request.path }}">
+            <span>News</span>
+        </a>
+        <a href="{% url 'polls:index' %}?next={{ request.path }}">
+            <span>The Great Unwashed</span>
+        </a>
+        {% if not user.is_authenticated %}
+        <!--  login html로 가는데, 로그인하고나면 next에 적은 path로 이동해라라는 뜻  -->
+        <a href="{% url 'accountapp:login' %}?next={{ request.path }}">
+            <span>Login</span>
+        </a>
+        <a href="{% url 'accountapp:create' %}">
+            <span>SignUp</span>
+        </a>
+        {% else %}
+        <a href="{% url 'accountapp:detail' pk=user.pk %}">
+            <span>MyPage</span>
+        </a>
+        <a href="{% url 'accountapp:logout' %}?next={{ request.path }}">
+            <span>Logout</span>
+        </a>
+        {% endif %}
+    </div>
 </div>
 <hr>

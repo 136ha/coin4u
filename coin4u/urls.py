@@ -21,9 +21,13 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # path('', include('admin_black.urls')),
     path('accounts/', include('accountapp.urls')),
     path('profiles/', include('profileapp.urls')),
     path('polls/', include('polls.urls')),
     path('calendar/', include('calendarapp.urls')),
+    path('news/', include('newsapp.urls')),
+    path('indicators/', include('indicatorapp.urls')),
+    path('django_plotly_dash/', include('django_plotly_dash.urls')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

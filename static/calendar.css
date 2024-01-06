@@ -6,7 +6,7 @@
 
 .calendar tr, .calendar td {
   border: 1px solid black;
-  border-color: white;
+  border-color: black;
 }
 
 .calendar th {
@@ -44,7 +44,7 @@ ul {
 
 .btn {
   outline: none;
-  color: white;
+  color: black;
   background-color: transparent;
   box-shadow: 0 0 0 0;
 }

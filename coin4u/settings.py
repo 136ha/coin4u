@@ -36,27 +36,41 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
-
-INSTALLED_APPS = [
+DJANGO_APPS = [
+    'django_plotly_dash.apps.DjangoPlotlyDashConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'bootstrap5',
+]
+
+PROJECT_APPS = [
     'accountapp',
     'profileapp',
     'polls',
     'calendarapp',
+    'newsapp',
+    'indicatorapp',
+]
+
+THIRD_PARTY_APPS = [
+    'bootstrap5',
     'django_apscheduler',
     'chartjs',
     'bokeh',
+    'rest_framework',
+    'ckeditor',
+    'ckeditor_uploader',
+    'dpd_static_support',
 ]
+
+INSTALLED_APPS = DJANGO_APPS + PROJECT_APPS + THIRD_PARTY_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -66,6 +80,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_plotly_dash.middleware.ExternalRedirectionMiddleware',
 ]
 
 ROOT_URLCONF = 'coin4u.urls'
@@ -152,6 +167,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = reverse_lazy('accountapp:hello_world')
 LOGOUT_REDIRECT_URL = reverse_lazy('accountapp:login')
 
+# ckeditor files
+# CKEDITOR_BASEPATH = os.path.join(BASE_DIR, 'ckeditor')
+CKEDITOR_UPLOAD_PATH = 'uploads/'
 
 # Format string for displaying run time timestamps in the Django admin site. The default
 # just adds seconds to the standard Django format, which is useful for displaying the timestamps
@@ -168,3 +186,10 @@ APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
 # that supports multiple background worker processes instead (e.g. Dramatiq, Celery, Django-RQ,
 # etc. See: https://djangopackages.org/grids/g/workers-queues-tasks/ for popular options).
 APSCHEDULER_RUN_NOW_TIMEOUT = 25  # Seconds
+
+# Django plotly dash
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+PLOTLY_COMPONENTS = [
+    'dpd_static_support',
+]

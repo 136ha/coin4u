@@ -31,7 +31,7 @@ class Choice(models.Model):
         return self.choice_text
 
 
-class btcusdt_15m(models.Model):
+class btcusd(models.Model):
     timestamp = models.DateTimeField(auto_now=True, null=True, blank=True)
     open = models.IntegerField(blank=True, null=True)
     close = models.IntegerField(blank=True, null=True)
