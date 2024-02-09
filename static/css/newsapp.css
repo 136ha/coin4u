@@ -87,6 +87,7 @@
 /* Reduce padding for 'Press Releases' section to have it closer to 'Join Our Community' */
 .row.pt-4 {
     padding-top: 2rem !important;
+    width: 100%;
 }
 
 .card {

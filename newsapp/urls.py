@@ -1,19 +1,13 @@
 # urls.py
-from django.contrib import admin
-from django.urls import include, path
+from django.urls import path
 from . import views
-from django.conf import settings
-from django.conf.urls.static import static
+from .views import crawler
 
 app_name = "newsapp"
 
 urlpatterns = [
-    path('', views.index, name='index'),
-    path('editorial/<slug:slug>/', views.editorial, name='editorial'),
-    path('ckeditor/', include('ckeditor_uploader.urls')),  # Use ckeditor URLs
-    path('tutorials/', views.tutorials, name='tutorials'),
-    path('press-release/<slug:slug>/', views.press_release, name='press-release'),
-
+    path('', views.NewsView.as_view(), name='index'),
+    path("crawler", crawler, name="crawler"),
 ] 
 
 # if settings.DEBUG:

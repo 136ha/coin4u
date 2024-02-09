@@ -48,6 +48,8 @@ DJANGO_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # 'indicatorapp.apps.PollsConfig',
+    # 'indicatorapp.apps.PollsUpdateConfig',
 ]
 
 PROJECT_APPS = [
@@ -178,6 +180,7 @@ CKEDITOR_UPLOAD_PATH = 'uploads/'
 # See https://docs.djangoproject.com/en/dev/ref/settings/#datetime-format for format string
 # syntax details.
 APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
+SCHEDULER_DEFAULT = True
 
 # Maximum run time allowed for jobs that are triggered manually via the Django admin site, which
 # prevents admin site HTTP requests from timing out.
@@ -193,3 +196,5 @@ X_FRAME_OPTIONS = 'SAMEORIGIN'
 PLOTLY_COMPONENTS = [
     'dpd_static_support',
 ]
+
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 1024000000

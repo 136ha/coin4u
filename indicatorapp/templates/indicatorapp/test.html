@@ -1,0 +1,15 @@
+{% extends 'base.html' %}}
+{% load bootstrap5 %}
+{% bootstrap_css %}
+{% bootstrap_javascript %}
+{% bootstrap_messages %}
+
+{% block content %}
+
+<div>
+    {% for ed in event_data %}
+        <h1>{{ ed.open }}</h1>
+    {% endfor %}
+</div>
+
+{% endblock %}

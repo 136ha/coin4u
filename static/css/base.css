@@ -1,0 +1,26 @@
+.header {
+    font-family: 'Rubik', sans-serif;
+    text-align: center;
+    padding: 2rem;
+}
+
+.footer {
+    font-family: 'Rubik', sans-serif;
+    text-align: center;
+}
+
+a:link {
+  text-decoration-line: none;
+  color : #000000;
+}
+a:visited {
+  text-decoration-line: none;
+  color : #000000;
+}
+a:hover {
+  color : #FFBF00;
+}
+a:active {
+  text-decoration-line: none;
+  color : #000000;
+}

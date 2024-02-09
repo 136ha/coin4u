@@ -1,72 +1,20 @@
 from django.db import models
-from django.utils.text import slugify
-from django.urls import reverse
-from ckeditor.fields import RichTextField  # Import from ckeditor
 
 class Article(models.Model):
-    title = models.CharField(max_length=200)
-    content = RichTextField(null=True)  # Use RichTextField from ckeditor
+    abstract = models.CharField(max_length=200)
+    web_url = models.URLField("Site URL", max_length=300, null=True, blank=True)
+    snippet = models.CharField(max_length=200, null=True, blank=True)
+    lead_paragraph = models.CharField(max_length=200, null=True, blank=True)
+    headline = models.JSONField(default=dict, null=True, blank=True)
+    keywords = models.JSONField(default=dict, null=True, blank=True)
     pub_date = models.DateTimeField('date published')
-    image = models.ImageField(upload_to='images/', null=True, blank=True)
+    news_desk = models.CharField(max_length=20, null=True, blank=True)
+    section_name = models.CharField(max_length=30, null=True, blank=True)
+    subsection_name = models.CharField(max_length=20, null=True, blank=True)
+    word_count = models.IntegerField(default=0, null=True, blank=True)
+    neg = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True)
+    neu = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True)
+    pos = models.DecimalField(max_digits=4, decimal_places=3, null=True, blank=True)
 
     def __str__(self):
-        return self.title
-
-class Editorial(models.Model):
-    title = models.CharField(max_length=200)
-    slug = models.SlugField(unique=True)
-    thumbnail = models.ImageField(upload_to='images/', null=True, blank=True)
-    content = RichTextField(null=True)  # Use RichTextField from ckeditor
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            potential_slug = slugify(self.title)
-            if Editorial.objects.filter(slug=potential_slug).exists():
-                i = 1
-                while Editorial.objects.filter(slug=potential_slug + '-' + str(i)).exists():
-                    i += 1
-                self.slug = potential_slug + '-' + str(i)
-            else:
-                self.slug = potential_slug
-        super().save(*args, **kwargs)
-
-    def get_absolute_url(self):
-        return reverse('editorial', args=[str(self.slug)])
-
-
-    def __str__(self):
-        return self.title
-
-
-class CryptoAnalysis(models.Model):
-    title = models.CharField(max_length=200)
-    link = models.URLField()
-    image = models.ImageField(upload_to='images/', null=True, blank=True)
-
-    def __str__(self):
-        return self.title
-
-# models.py
-class PressRelease(models.Model):
-    title = models.CharField(max_length=200)
-    slug = models.SlugField(unique=True)
-    thumbnail = models.ImageField(upload_to='images/', null=True, blank=True)
-    content = RichTextField(null=True)  # Use RichTextField from ckeditor
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            potential_slug = slugify(self.title)
-            if PressRelease.objects.filter(slug=potential_slug).exists():
-                i = 1
-                while PressRelease.objects.filter(slug=potential_slug + '-' + str(i)).exists():
-                    i += 1
-                self.slug = potential_slug + '-' + str(i)
-            else:
-                self.slug = potential_slug
-        super().save(*args, **kwargs)
-
-    def get_absolute_url(self):
-        return reverse('press-release', args=[str(self.slug)])
-
-    def __str__(self):
-        return self.title
+        return self.pub_date.strftime("%Y-%m-%d") + ' | ' + self.headline['main']

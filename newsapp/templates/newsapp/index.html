@@ -5,35 +5,116 @@
 {% block content %}
     <div class="container mt-3">
         <!-- SECTION A -->
-        <div class="card-deck">
-            <div class="card mb-4 shadow">
-                <a href="#" class="stretched-link">
-                    <img src="https://via.placeholder.com/350" class="card-img-top card-image zoom" alt="Sample news story">
-                    <div class="card-body card-content">
-                        <h5 class="card-title">Sample news story</h5>
-                        <p class="card-text">This is a sample news story...</p>
-                    </div>
-                </a>
+        <div>
+            <div style="width:50%; float:left;">
+                <h5 style="text-align: center;">Hot keywords for 24 hours</h5>
+                <canvas id="bar-chart" style="width:100%; margin-left: auto; margin-right: auto;"></canvas>
+                <script>
+                    const ctx1 = document.getElementById('bar-chart');
+                    new Chart(ctx1, {
+                        type: 'bar',
+                        data: {
+                            labels: {{ keyword|safe }},
+                            datasets: [{
+                                label: 'count',
+                                data: {{ count|safe }},
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            scales: {
+                                y: {
+                                    beginAtZero: true
+                                }
+                            }
+                        }
+                    });
+                </script>
             </div>
-            <div class="d-flex flex-column">
-                <div class="card mb-4 shadow">
-                    <a href="#" class="stretched-link">
-                        <img src="https://via.placeholder.com/350" class="card-img-top card-image zoom" alt="Sample news story">
-                        <div class="card-body card-content">
-                            <h5 class="card-title">Sample news story</h5>
-                            <p class="card-text">This is a sample news story...</p>
-                        </div>
-                    </a>
+
+            <div style="width:50%; float:right;">
+                <h5 style="text-align: center;">Sentimental analysis of keywords</h5>
+                <canvas id="stack-chart" style="width:100%; margin-left: auto; margin-right: auto;"></canvas>
+                <script>
+                    const ctx2 = document.getElementById('stack-chart');
+                        new Chart(ctx2, {
+                            type: 'bar',
+                            data: {
+                                labels: {{ high_ranked|safe }},
+                                datasets: [
+                                    {
+                                        data: {{ neg|safe }},
+                                        backgroundColor: ['red'],
+                                        label: 'neg'
+                                    },
+                                    {
+                                        data: {{ neu|safe }},
+                                        backgroundColor: ['yellow'],
+                                        label: 'neu'
+                                    },
+                                    {
+                                        data: {{ pos|safe }},
+                                        backgroundColor: ['green'],
+                                        label: 'pos'
+                                    },
+                                ],
+                            },
+                            options: {
+                                indexAxis: 'x',
+                                responsive: true,
+                                scales: {
+                                    x: {
+                                        stacked: true,
+                                    },
+                                    y: {
+                                        stacked: true,
+                                        min: 0,
+                                        max: 1,
+                                    }
+                                }
+                            }
+                      });
+                </script>
+            </div>
+        </div>
+
+        <div>
+            <div style="width:50%; float:left;">
+                    <h5 style="text-align: center;">Trends for 24 hours</h5>
+                    <canvas id="line-chart" style="width:100%; margin-left: auto; margin-right: auto;"></canvas>
+                    <script>
+                        const ctx4 = document.getElementById('line-chart');
+                        new Chart(ctx4, {
+                            type: 'line',
+                            data: {
+                                labels: {{ trend_index|safe }},
+                                datasets: [{
+                                    label: 'BTCUSDT',
+                                    data: {{ trend_value|safe }},
+                                }],
+                            },
+                        });
+                    </script>
                 </div>
-                <div class="card mb-4 shadow">
-                    <a href="#" class="stretched-link">
-                        <img src="https://via.placeholder.com/350" class="card-img-top card-image zoom" alt="Sample news story">
-                        <div class="card-body card-content">
-                            <h5 class="card-title">Sample news story</h5>
-                            <p class="card-text">This is a sample news story...</p>
-                        </div>
-                    </a>
-                </div>
+
+            <div style="width:50%; height:300px; float:right;">
+                <h5 style="text-align: center;">News subject for 24 hours</h5>
+                <canvas id="doughnut-chart" style="width:100%; margin-left: auto; margin-right: auto;"></canvas>
+                <script>
+                    const ctx3 = document.getElementById('doughnut-chart');
+                    new Chart(ctx3, {
+                        type: 'doughnut',
+                        data: {
+                            labels: {{ news_desk_index|safe }},
+                            datasets: [{
+                                label: 'count',
+                                data: {{ news_desk_value|safe }},
+                                circumference: 180,
+                                rotation: 270,
+                            }],
+                        },
+                    });
+                </script>
             </div>
         </div>
 
@@ -41,20 +122,23 @@
         <div class="row pt-4">
             <div class="title-bar">
                 <h5 class="titlehome">
-                    <a href="/press-releases/">Crypto News</a>
+                    <a>Business & Politics News</a>
                 </h5>
             </div>
-            {% for _ in 10|custom_range %}
+            {% for art in article %}
             <div class="card mb-4 shadow">
-                <a href="#" class="stretched-link">
+                <a href="{{ art.web_url }}" class="stretched-link">
                     <div class="row no-gutters">
                         <div class="col-lg-3">
-                            <img src="https://via.placeholder.com/150" class="card-img" alt="Sample news story">
+                            <p class="card-text">{{ art.pub_date }}</p>
+                            <p>pos: {{ art.pos }}</p>
+                            <p>neu: {{ art.neu }}</p>
+                            <p>neg: {{ art.neg }}</p>
                         </div>
                         <div class="col-lg-9">
                             <div class="card-body">
-                                <h5 class="card-title">Sample news story</h5>
-                                <p class="card-text">This is a sample news story...</p>
+                                <h5 class="card-title">{{ art.headline.main }}</h5>
+                                <p class="card-text">{{ art.abstract }}</p>
                             </div>
                         </div>
                     </div>

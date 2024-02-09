@@ -7,13 +7,56 @@
 {% block content %}
 
 <div>
-    <h1 style="text-align: center;">Earnings Calendar</h1>
     <div class="clearfix">
         <a class="btn btn-info left" href="{% url 'calendarapp:calendar' %}?{{ prev_month }}"> Previous Month </a>
         <a class="btn btn-info right" href="{% url 'calendarapp:calendar' %}?{{ next_month }}"> Next Month </a>
     </div>
+
     <div>
-        {{ calendar }}
+        <div style="width:75%; box-sizing:border-box; float:left;">
+            {{ calendar }}
+        </div>
+
+        <div style="width:25%; box-sizing:border-box; float:right;">
+            <hr>
+            <h5 style="text-align: center;">Is there volatility on the day of the announcement?</h5>
+            <hr>
+            <canvas id="bar-chart" style="height:60vh; width:100%"></canvas>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <script>
+
+            var config = {
+              type: 'bar',
+              data: {
+                datasets: [{
+                  data: {{ e_count_list|safe }},
+                  backgroundColor: [
+                    '#388E3C'
+                  ],
+                  label: 'Effective!'
+                },
+                {
+                  data: {{ n_count_list|safe }},
+                  backgroundColor: [
+                    '#D32F2F'
+                  ],
+                  label: 'Not at all...'
+                }],
+                labels: {{ symbol_list|safe }}
+              },
+              options: {
+                indexAxis: 'y',
+                responsive: true
+              }
+            };
+
+            window.onload = function() {
+              var ctx = document.getElementById('bar-chart').getContext('2d');
+              window.myPie = new Chart(ctx, config);
+            };
+
+          </script>
+        </div>
     </div>
 </div>
 

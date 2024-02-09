@@ -21,10 +21,9 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # path('', include('admin_black.urls')),
     path('accounts/', include('accountapp.urls')),
     path('profiles/', include('profileapp.urls')),
-    path('polls/', include('polls.urls')),
+    path('polls/', include('polls.urls', namespace="polls")),
     path('calendar/', include('calendarapp.urls')),
     path('news/', include('newsapp.urls')),
     path('indicators/', include('indicatorapp.urls')),
