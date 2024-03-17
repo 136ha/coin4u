@@ -26,7 +26,6 @@ urlpatterns = [
     path('polls/', include('polls.urls', namespace="polls")),
     path('calendar/', include('calendarapp.urls')),
     path('news/', include('newsapp.urls')),
-    path('indicators/', include('indicatorapp.urls')),
-    path('django_plotly_dash/', include('django_plotly_dash.urls')),
+    path('', include('indicatorapp.urls')),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,0 +1,35 @@
+{% extends 'base.html' %}}
+{% load bootstrap5 %}
+{% bootstrap_css %}
+{% bootstrap_javascript %}
+{% bootstrap_messages %}
+{% load static %}
+
+{% block content %}
+
+<div class="container mt-3">
+    <div style="width:100%;">
+        <form action="{% url 'indicatorapp:detail' %}" method="get">
+            <label style="width: 100%;">
+                <input style="width:100%; float:left; right-margin: 1%;" id="searchQueryInput" class="form-control" list="datalistOptions" name="ticker" placeholder={{ ticker }}>
+                <datalist id="datalistOptions" class="searchQuerySubmit">
+                    {% for symbol in symbol_list %}
+                    <option>{{ symbol }}</option>
+                    {% endfor %}
+                </datalist>
+                <button id="searchQuerySubmit" name="searchQuerySubmit" class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+            </label>
+        </form>
+    </div>
+
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+        <p>
+            <b><i>{{ ticker }}</i></b> is <b><i>Not Found :(</i></b>
+        </p>
+        <p>
+            Please search only ticker :)
+        </p>
+    </div>
+</div>
+
+{% endblock %}

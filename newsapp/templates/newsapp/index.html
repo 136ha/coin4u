@@ -6,9 +6,9 @@
     <div class="container mt-3">
         <!-- SECTION A -->
         <div>
-            <div style="width:50%; float:left;">
-                <h5 style="text-align: center;">Hot keywords for 24 hours</h5>
-                <canvas id="bar-chart" style="width:100%; margin-left: auto; margin-right: auto;"></canvas>
+            <div style="width:50%; max-height: 400px; float:left; padding: 20px 5px;">
+                <h5 style="text-align: center;">Hot keywords for a week</h5>
+                <canvas id="bar-chart" style="width:100%; max-height: 350px;"></canvas>
                 <script>
                     const ctx1 = document.getElementById('bar-chart');
                     new Chart(ctx1, {
@@ -18,7 +18,7 @@
                             datasets: [{
                                 label: 'count',
                                 data: {{ count|safe }},
-                                borderWidth: 1
+                                backgroundColor: ['red'],
                             }]
                         },
                         options: {
@@ -32,9 +32,9 @@
                 </script>
             </div>
 
-            <div style="width:50%; float:right;">
+            <div style="width:50%; max-height: 400px; float:right; padding: 20px 5px;">
                 <h5 style="text-align: center;">Sentimental analysis of keywords</h5>
-                <canvas id="stack-chart" style="width:100%; margin-left: auto; margin-right: auto;"></canvas>
+                <canvas id="stack-chart" style="width:100%; max-height: 350px;"></canvas>
                 <script>
                     const ctx2 = document.getElementById('stack-chart');
                         new Chart(ctx2, {
@@ -79,27 +79,60 @@
         </div>
 
         <div>
-            <div style="width:50%; float:left;">
-                    <h5 style="text-align: center;">Trends for 24 hours</h5>
-                    <canvas id="line-chart" style="width:100%; margin-left: auto; margin-right: auto;"></canvas>
-                    <script>
-                        const ctx4 = document.getElementById('line-chart');
-                        new Chart(ctx4, {
-                            type: 'line',
-                            data: {
-                                labels: {{ trend_index|safe }},
-                                datasets: [{
-                                    label: 'BTCUSDT',
-                                    data: {{ trend_value|safe }},
-                                }],
+            <div style="width:50%; max-height: 400px; float:left; padding: 20px 5px;">
+                <h5 style="text-align: center;">BTC-USD Trends</h5>
+                <canvas id="line-chart" style="width:100%; max-height: 350px;"></canvas>
+                <script>
+                    const ctx4 = document.getElementById('line-chart');
+                    new Chart(ctx4, {
+                        type: 'line',
+                        data: {
+                            labels: {{ trend_index|safe }},
+                            datasets: [{
+                                label: 'BTCUSDT',
+                                data: {{ trend_value|safe }},
+                                borderColor: ['black'],
+                                backgroundColor: ['black'],
+                            }],
+                        },
+                        options: {
+                        elements: {
+                            point: {
+                                radius: 0,
                             },
-                        });
-                    </script>
-                </div>
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    callback: function(val, index) {
+                                        return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                                    },
+                                },
+                            },
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    pointStyle: 'line',
+                                    usePointStyle: true,
+                                }
+                            }
+                        },
+                    },
+                    });
+                </script>
+            </div>
 
-            <div style="width:50%; height:300px; float:right;">
-                <h5 style="text-align: center;">News subject for 24 hours</h5>
-                <canvas id="doughnut-chart" style="width:100%; margin-left: auto; margin-right: auto;"></canvas>
+            <div style="width:50%; max-height: 400px; float:right; padding: 20px 5px;">
+                <h5 style="text-align: center;">News subject for a week</h5>
+                <canvas id="doughnut-chart" style="width:100%; max-height: 350px;"></canvas>
                 <script>
                     const ctx3 = document.getElementById('doughnut-chart');
                     new Chart(ctx3, {
@@ -111,6 +144,7 @@
                                 data: {{ news_desk_value|safe }},
                                 circumference: 180,
                                 rotation: 270,
+                                backgroundColor: ['#008080', '#20B2AA', '#5F9EA0', '#4682B4', '#7FFFD4', '#B0E0E6', '#00FF7F', '#98FB98'],
                             }],
                         },
                     });
@@ -122,7 +156,7 @@
         <div class="row pt-4">
             <div class="title-bar">
                 <h5 class="titlehome">
-                    <a>Business & Politics News</a>
+                    <a>Business & Politics News Links</a>
                 </h5>
             </div>
             {% for art in article %}
@@ -146,9 +180,6 @@
             </div>
             <hr>
             {% endfor %}
-            <div class="col-12 text-center mt-3">
-                <a href="/crypto-news/" class="btn btn-primary">Load more</a>
-            </div>
         </div>
     </div>
 

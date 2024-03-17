@@ -25,8 +25,9 @@ class CalendarView(ListView):
     template_name = 'calendarapp/calendar.html'
 
     def get_context_data(self, **kwargs):
+
         context = super().get_context_data(**kwargs)
-        ohlcv = pd.DataFrame(list(Ohlcv.objects.filter(symbol__exact="BTC-USD").values()))
+        ohlcv = pd.DataFrame(list(Ohlcv.objects.filter(symbol__exact='BTC-USD').values()))
 
         # =================== DATA FOR CALENDAR ===================
         d = get_date(self.request.GET.get('day', None))
@@ -169,8 +170,8 @@ def crawler(request):
         return pd.DataFrame(data=data['finance']['result'][0]['documents'][0]['rows'],
                             columns=[n['id'] for n in data['finance']['result'][0]['documents'][0]['columns']]).dropna()
 
-    now = datetime.datetime(2024, 2, 2)
-    today = datetime.datetime(2024, 2, 3)
+    now = datetime.datetime(2024, 2, 3)
+    today = datetime.datetime(2024, 3, 15)
     df = get_earning_data(headers, url, params, now)
     now = now + datetime.timedelta(days=1)
 

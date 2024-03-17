@@ -6,6 +6,6 @@ class CalendarappConfig(AppConfig):
     name = 'calendarapp'
 
     def ready(self):
-        if settings.SCHEDULER_DEFAULT:
+        if settings.local.SCHEDULER_DEFAULT:
             from . import runapscheduler
             runapscheduler.handle()

@@ -6,10 +6,23 @@
 
 {% block content %}
 
-<div>
+<div class="container mt-3">
+
+    <div>
+        <p style="font-size: 15px;">
+            This is earning calendar with numerical figures(epsEstimate - epsActual).
+            A higher than expected reading should be taken as positive/bullish for the enterprise,
+            while a lower than expected reading should be taken as megative/bearish for the enterprise.
+            On cursor to check epsEstimate and epsActual.
+            Colors are for BTC-USD. Bigger rise to thicker green, bigger drop to thicker red.
+        </p>
+    </div>
+
+    <hr>
+
     <div class="clearfix">
-        <a class="btn btn-info left" href="{% url 'calendarapp:calendar' %}?{{ prev_month }}"> Previous Month </a>
-        <a class="btn btn-info right" href="{% url 'calendarapp:calendar' %}?{{ next_month }}"> Next Month </a>
+        <a class="btn btn-dark left" style="width: 45%; float: left;" href="{% url 'calendarapp:calendar' %}?{{ prev_month }}"> Previous Month </a>
+        <a class="btn btn-dark right" style="width: 45%; float: right;" href="{% url 'calendarapp:calendar' %}?{{ next_month }}"> Next Month </a>
     </div>
 
     <div>

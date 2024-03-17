@@ -1,6 +1,9 @@
 import math
 
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
+from django.urls import reverse_lazy, reverse
+from django.views.generic import DetailView
 from django_plotly_dash import DjangoDash
 from dash import html, dcc, dash_table
 import plotly.graph_objects as go
@@ -13,735 +16,661 @@ import datetime
 from scipy.stats import pearsonr
 import yfinance as yf
 
-from indicatorapp.models import Item, Ohlcv
+from indicatorapp.models import Ohlcv, USBureauEvent, FinancialStatement
+from pytz import timezone
+from sklearn.preprocessing import StandardScaler
 
-sector_stocks = {
-    'Crypto': ['BTC-USD', 'ETH-USD', 'USDT-USD', 'USDC-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'DOGE-USD'],
-    'Stock': ['TSLA', 'AAPL', 'MARA', 'SOFI', 'AMD', 'MIO', 'F', 'LTHM'],
-    # 'Futures': ['ES=F', 'YM=F', 'NQ=F', 'RTY=F', 'ZB=F', 'GC=F'],
-}
-
-min_date = '2023-01-01'
-max_date = '2023-12-31'
+from indicatorapp.utils import get_fnMACD, get_stochastic, get_mfi, get_rsi, get_ADX, get_cci
 
 
-def TestView(request):
-    event_data = Ohlcv.objects.filter(symbol__exact="ETH-USD")
-    return render(request, 'indicatorapp/test.html', {'event_data': event_data})
+def indexView(request):
+    symbol_list = [
+        'BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'STETH-USD', 'XRP-USD', 'DOGE-USD',
+        'ADA-USD', 'AVAX-USD', 'SHIB-USD', 'DOT-USD', 'TON11419-USD', 'LINK-USD', 'MATIC-USD',
+        'WTRX-USD', 'TRX-USD', 'WBTC-USD', 'NEAR-USD', 'BCH-USD', 'UNI7083-USD', 'LTC-USD',
+        'APT21794-USD', 'ICP-USD', 'LEO-USD', 'DAI-USD', 'FIL-USD', 'ATOM-USD', 'ETC-USD',
+        'RNDR-USD', 'INJ-USD', 'OKB-USD', 'WHBAR-USD', 'HBAR-USD', 'XLM-USD', 'CRO-USD',
+        'OP-USD', 'BTCB-USD', 'WBETH-USD', 'VET-USD', 'KAS-USD', 'THETA-USD', 'SEI-USD',
+        'XMR-USD', 'MKR-USD', 'LDO-USD', 'FTM-USD', 'WIF-USD', 'ALGO-USD', 'RETH-USD',
 
-# https://python.plainenglish.io/stock-analysis-dashboard-with-python-366d431c8721
-def index(request):
+        'MSFT', 'NVDA', 'AMZN', 'GOOG', 'GOOGL', 'META', 'BRK-A', 'BRK-B', 'LLY',
+        'TSM', 'JPM', 'NONOF', 'NVO', 'V', 'AVGO', 'WMT', 'LVMHF', 'LVMUY', 'UNH',
+        'MA', 'XOM', 'JNJ', 'PG', 'ASML', 'ASMLF', 'HD', 'LTMAY', 'BAC', 'ORCL', 'TCEHY',
+        'TCTZF', 'JPM-PD', 'JPM-PC', 'COST', 'TM', 'TOYOF', 'ABBV', 'BAC-PK', 'BML-PG',
+        'MRK', 'BML-PH', 'BAC-PE', 'BAC-PL', 'BML-PL', 'CVX', 'CRM', 'F', 'LTHM',
+        'NSRGY', 'HESAF', 'HESAY', 'NFLX', 'LRLCY', 'LRLCF', 'KO', 'BML-PJ', 'BAC-PB',
+        'IDCBY', 'ACN', 'FMXUF', 'FMX', 'IDCBF', 'PEP', 'LIN', 'ADBE', 'TMO', 'PCCYF',
+        'SAPGF', 'SAP', 'SHEL', 'RHHVF', 'RHHBY', 'RYDAF', 'NVSEF', 'WFC', 'AZN', 'DIS',
+        'AZNCF', 'MCD', 'RHHBF', 'ABT', 'NVS', 'WFC-PY', 'CSCO', 'ACGBY', 'TMUS', 'BABA',
+        'WFC-PL', 'BABAF', 'QCOM', 'DHR', 'WFC-PR', 'AYAAY', 'GE', 'INTC', 'IBM', 'INTU',
+        'CAT', 'CMCSA', 'VZ', 'C-PJ', 'AMAT', 'PDD', 'CHDRF', 'PROSF', 'SMAWF', 'TTFNF',
+        'SIEGY', 'CICHF', 'CHDRY', 'TTE', 'PROSY', 'AXP', 'UBER', 'PFE', 'TXN', 'CICHY',
+        'MS', 'IDEXY', 'NOW', 'BACHY', 'IDEXF', 'BX', 'NKE', 'BACHF', 'UNP', 'HBCYF', 'PM',
+        'HSBC', 'GS', 'C', 'AMGN', 'BHP', 'COP', 'LOW', 'ISRG', 'BHPLF', 'EADSF', 'RY',
+        'HDB', 'EADSY', 'CMWAY', 'SYK', 'SPGI', 'SBGSF', 'SBGSY', 'UPS', 'ARM', 'HON',
+        'BUD', 'RTNTF', 'UL', 'WFC-PC', 'UNLYF', 'RTX', 'NEE', 'SCHW', 'T', 'SNYNF',
+        'DTEGF', 'SNY', 'MUFG', 'PGR', 'BLK', 'ELV', 'PLD', 'LRCX', 'BUDFF', 'ETN', 'DTEGY',
+        'MBFJF', 'BKNG', 'ALIZF', 'ALIZY', 'KYCCF', 'TOELY', 'TOELF', 'BA', 'TJX', 'TD',
+        'AIQUY', 'MDT', 'AIQUF', 'SONY', 'SNEJF', 'CIHKY', 'DE', 'REGN', 'BMY', 'BP',
+        'LMT', 'VRTX', 'BPAQF', 'CB', 'UBS', 'ESLOY', 'MU', 'CI', 'TSLA', 'AAPL', 'MARA',
+        'SOFI', 'AMD', 'MIO', None,
+    ]
 
-    ambev = pd.DataFrame(list(Ohlcv.objects.filter(symbol__exact="ETH-USD").values()))
-    ambev.set_index(ambev['timestamp'], inplace=True)
-    # 'ambev_variation' is a complementary information stored inside the card that
-    # shows the stock's current price (to be built futurely). It presents, as its
-    # variable name already suggests, the stock's price variation when compared to
-    # its previous value.
-    ambev_variation = 1 - (ambev['Close'].iloc[-1] / ambev['Close'].iloc[-2])
+    ticker = request.GET.get('ticker')
+    if ticker not in symbol_list:
+        context = {'ticker': ticker}
+        return render(request, 'indicatorapp/error.html', context)
 
-    # 'fig' exposes the candlestick chart with the prices of the stock since 2015.
-    fig = go.Figure()
+    usbe = pd.DataFrame(USBureauEvent.objects.all().values())
 
-    # Observe that we are promtly filling the charts with AMBEV's data.
-    fig.add_trace(go.Candlestick(x=ambev.index,
-                                 open=ambev['Open'],
-                                 close=ambev['Close'],
-                                 high=ambev['High'],
-                                 low=ambev['Low'],
-                                 name='Stock Price'))
-    fig.update_layout(
-        margin=dict(l=10, r=10, b=5, t=5),
-        autosize=True,
-        showlegend=False,
-        template = 'plotly_white',
-    )
-    # Setting the graph to display the 2021 prices in a first moment.
-    # Nonetheless,the user can also manually ajust the zoom size either by selecting a
-    # section of the chart or using one of the time span buttons available.
+    def nearest(items, pivot):
+        return min([i for i in items if i > pivot], key=lambda x: x - pivot)
 
-    # These two variables are going to be of use for the time span buttons.
-    global min_date, max_date
-    fig.update_xaxes(range=[min_date, max_date])
-    fig.update_yaxes(tickprefix='$')
+    now = datetime.datetime.now(timezone('US/Eastern'))
+    imminent_event = usbe[usbe['date'] == nearest(usbe['date'].tolist(), now)].iloc[0]
 
-    # The output from this small resample operation feeds the weekly average price chart.
-    ambev_mean_52 = ambev.resample('W')['Close'].mean().iloc[-52:]
-    fig2 = go.Figure()
-    fig2.add_trace(go.Scatter(x=ambev_mean_52.index, y=ambev_mean_52.values))
-    fig2.update_layout(
-        title={'text': 'Weekly Average Price', 'y': 0.9},
-        font={'size': 8},
-        margin=dict(l=10, r=10, b=5, t=5),
-        autosize=True,
-        showlegend=False,
-        template='plotly_white',
-    )
-    fig2.update_xaxes(showticklabels=False, showgrid=False)
-    fig2.update_yaxes(range=[ambev_mean_52.min() - 1, ambev_mean_52.max() + 1.5],
-                      showticklabels=False, gridcolor='darkgrey', showgrid=False)
+    context = {
+        'symbol_list': symbol_list,
+        'imminent_event': imminent_event,
+    }
+    return render(request, 'indicatorapp/index.html', context)
 
-    # Making a speedometer chart which indicates the stock' minimum and maximum closing prices
-    # reached during the last 52 weeks along its current price.
-    df_52_weeks_min = ambev.resample('W')['Close'].min()[-52:].min()
-    df_52_weeks_max = ambev.resample('W')['Close'].max()[-52:].max()
-    current_price = ambev.iloc[-1]['Close']
-    fig3 = go.Figure()
-    fig3.add_trace(go.Indicator(mode='gauge+number', value=current_price,
-                                domain={'x': [0, 1], 'y': [0, 1]},
-                                gauge={
-                                    'axis': {'range': [df_52_weeks_min, df_52_weeks_max]},
-                                    'bar': {'color': '#606bf3'}}))
-    fig3.update_layout(
-        title={'text': 'Min-Max Prices', 'y': 0.9},
-        font={'size': 8},
-        margin=dict(l=35, r=0, b=5, t=5),
-        autosize=True,
-        showlegend=False,
-        template='plotly_white',
-    )
 
-    # 1. Data Collection & Cleaning (Continuance)
+# https://songseungwon.tistory.com/147
+# https://www.bls.gov/schedule/2024/02_sched_list.htm
+# https://www.bls.gov/developers/api_signature_v2.htm#latest
+def detailView(request):
+    symbol_list = [
+        'BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'STETH-USD', 'XRP-USD', 'DOGE-USD',
+        'ADA-USD', 'AVAX-USD', 'SHIB-USD', 'DOT-USD', 'TON11419-USD', 'LINK-USD', 'MATIC-USD',
+        'WTRX-USD', 'TRX-USD', 'WBTC-USD', 'NEAR-USD', 'BCH-USD', 'UNI7083-USD', 'LTC-USD',
+        'APT21794-USD', 'ICP-USD', 'LEO-USD', 'DAI-USD', 'FIL-USD', 'ATOM-USD', 'ETC-USD',
+        'RNDR-USD', 'INJ-USD', 'OKB-USD', 'WHBAR-USD', 'HBAR-USD', 'XLM-USD', 'CRO-USD',
+        'OP-USD', 'BTCB-USD', 'WBETH-USD', 'VET-USD', 'KAS-USD', 'THETA-USD', 'SEI-USD',
+        'XMR-USD', 'MKR-USD', 'LDO-USD', 'FTM-USD', 'WIF-USD', 'ALGO-USD', 'RETH-USD',
 
-    # A function that is going to measure the stocks' price variation.
-    def variation(name):
-        df = pd.DataFrame(list(Ohlcv.objects.filter(symbol__exact=f"{name}").values()))
-        df.set_index(df['timestamp'], inplace=True)
-        # tick = yf.Ticker(f"{name}")
-        # df = tick.history(period='1wk')
-        return 1 - (df['Close'].iloc[-1] / df['Close'].iloc[-2])
-
-    # Listing the companies to be shown in the Carousel.
-    carousel_stocks = ['BTC-USD', 'ETH-USD', 'USDT-USD', 'USDC-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'DOGE-USD']
-
-    # This dictionary will later be converted into a json file.
-    carousel_prices = {}
-    for stock in carousel_stocks:
-        # Applying the 'variation' function for each of the list elements.
-        carousel_prices[stock] = variation(stock)
+        'MSFT', 'NVDA', 'AMZN', 'GOOG', 'GOOGL', 'META', 'BRK-A', 'BRK-B', 'LLY',
+        'TSM', 'JPM', 'NONOF', 'NVO', 'V', 'AVGO', 'WMT', 'LVMHF', 'LVMUY', 'UNH',
+        'MA', 'XOM', 'JNJ', 'PG', 'ASML', 'ASMLF', 'HD', 'LTMAY', 'BAC', 'ORCL', 'TCEHY',
+        'TCTZF', 'JPM-PD', 'JPM-PC', 'COST', 'TM', 'TOYOF', 'ABBV', 'BAC-PK', 'BML-PG',
+        'MRK', 'BML-PH', 'BAC-PE', 'BAC-PL', 'BML-PL', 'CVX', 'CRM', 'F', 'LTHM',
+        'NSRGY', 'HESAF', 'HESAY', 'NFLX', 'LRLCY', 'LRLCF', 'KO', 'BML-PJ', 'BAC-PB',
+        'IDCBY', 'ACN', 'FMXUF', 'FMX', 'IDCBF', 'PEP', 'LIN', 'ADBE', 'TMO', 'PCCYF',
+        'SAPGF', 'SAP', 'SHEL', 'RHHVF', 'RHHBY', 'RYDAF', 'NVSEF', 'WFC', 'AZN', 'DIS',
+        'AZNCF', 'MCD', 'RHHBF', 'ABT', 'NVS', 'WFC-PY', 'CSCO', 'ACGBY', 'TMUS', 'BABA',
+        'WFC-PL', 'BABAF', 'QCOM', 'DHR', 'WFC-PR', 'AYAAY', 'GE', 'INTC', 'IBM', 'INTU',
+        'CAT', 'CMCSA', 'VZ', 'C-PJ', 'AMAT', 'PDD', 'CHDRF', 'PROSF', 'SMAWF', 'TTFNF',
+        'SIEGY', 'CICHF', 'CHDRY', 'TTE', 'PROSY', 'AXP', 'UBER', 'PFE', 'TXN', 'CICHY',
+        'MS', 'IDEXY', 'NOW', 'BACHY', 'IDEXF', 'BX', 'NKE', 'BACHF', 'UNP', 'HBCYF', 'PM',
+        'HSBC', 'GS', 'C', 'AMGN', 'BHP', 'COP', 'LOW', 'ISRG', 'BHPLF', 'EADSF', 'RY',
+        'HDB', 'EADSY', 'CMWAY', 'SYK', 'SPGI', 'SBGSF', 'SBGSY', 'UPS', 'ARM', 'HON',
+        'BUD', 'RTNTF', 'UL', 'WFC-PC', 'UNLYF', 'RTX', 'NEE', 'SCHW', 'T', 'SNYNF',
+        'DTEGF', 'SNY', 'MUFG', 'PGR', 'BLK', 'ELV', 'PLD', 'LRCX', 'BUDFF', 'ETN', 'DTEGY',
+        'MBFJF', 'BKNG', 'ALIZF', 'ALIZY', 'KYCCF', 'TOELY', 'TOELF', 'BA', 'TJX', 'TD',
+        'AIQUY', 'MDT', 'AIQUF', 'SONY', 'SNEJF', 'CIHKY', 'DE', 'REGN', 'BMY', 'BP',
+        'LMT', 'VRTX', 'BPAQF', 'CB', 'UBS', 'ESLOY', 'MU', 'CI', 'TSLA', 'AAPL', 'MARA',
+        'SOFI', 'AMD', 'MIO',
+    ]
 
     sector_stocks = {
-        'Crypto': ['BTC-USD', 'ETH-USD', 'USDT-USD', 'USDC-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'DOGE-USD'],
-        'Stock': ['TSLA', 'AAPL', 'MARA', 'SOFI', 'AMD', 'MIO', 'F', 'LTHM'],
-        # 'Futures': ['ES=F', 'YM=F', 'NQ=F', 'RTY=F', 'ZB=F', 'GC=F'],
+        'Crypto': [
+            'BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'STETH-USD', 'XRP-USD', 'DOGE-USD',
+            'ADA-USD', 'AVAX-USD', 'SHIB-USD', 'DOT-USD', 'TON11419-USD', 'LINK-USD', 'MATIC-USD',
+            'WTRX-USD', 'TRX-USD', 'WBTC-USD', 'NEAR-USD', 'BCH-USD', 'UNI7083-USD', 'LTC-USD',
+            'APT21794-USD', 'ICP-USD', 'LEO-USD', 'DAI-USD', 'FIL-USD', 'ATOM-USD', 'ETC-USD',
+            'RNDR-USD', 'INJ-USD', 'OKB-USD', 'WHBAR-USD', 'HBAR-USD', 'XLM-USD', 'CRO-USD',
+            'OP-USD', 'BTCB-USD', 'WBETH-USD', 'VET-USD', 'KAS-USD', 'THETA-USD', 'SEI-USD',
+            'XMR-USD', 'MKR-USD', 'LDO-USD', 'FTM-USD', 'WIF-USD', 'ALGO-USD', 'RETH-USD',
+        ],
+        'Stock': [
+            'MSFT', 'NVDA', 'AMZN', 'GOOG', 'GOOGL', 'META', 'BRK-A', 'BRK-B', 'LLY',
+            'TSM', 'JPM', 'NONOF', 'NVO', 'V', 'AVGO', 'WMT', 'LVMHF', 'LVMUY', 'UNH',
+            'MA', 'XOM', 'JNJ', 'PG', 'ASML', 'ASMLF', 'HD', 'LTMAY', 'BAC', 'ORCL', 'TCEHY',
+            'TCTZF', 'JPM-PD', 'JPM-PC', 'COST', 'TM', 'TOYOF', 'ABBV', 'BAC-PK', 'BML-PG',
+            'MRK', 'BML-PH', 'BAC-PE', 'BAC-PL', 'BML-PL', 'CVX', 'CRM', 'F', 'LTHM',
+            'NSRGY', 'HESAF', 'HESAY', 'NFLX', 'LRLCY', 'LRLCF', 'KO', 'BML-PJ', 'BAC-PB',
+            'IDCBY', 'ACN', 'FMXUF', 'FMX', 'IDCBF', 'PEP', 'LIN', 'ADBE', 'TMO', 'PCCYF',
+             'SAPGF', 'SAP', 'SHEL', 'RHHVF', 'RHHBY', 'RYDAF', 'NVSEF', 'WFC', 'AZN', 'DIS',
+            'AZNCF', 'MCD', 'RHHBF', 'ABT', 'NVS', 'WFC-PY', 'CSCO', 'ACGBY', 'TMUS', 'BABA',
+            'WFC-PL', 'BABAF', 'QCOM', 'DHR', 'WFC-PR', 'AYAAY', 'GE', 'INTC', 'IBM', 'INTU',
+            'CAT', 'CMCSA', 'VZ', 'C-PJ', 'AMAT', 'PDD', 'CHDRF', 'PROSF', 'SMAWF', 'TTFNF',
+            'SIEGY', 'CICHF', 'CHDRY', 'TTE', 'PROSY', 'AXP', 'UBER', 'PFE', 'TXN', 'CICHY',
+            'MS', 'IDEXY', 'NOW', 'BACHY', 'IDEXF', 'BX', 'NKE', 'BACHF', 'UNP', 'HBCYF', 'PM',
+            'HSBC', 'GS', 'C', 'AMGN', 'BHP', 'COP', 'LOW', 'ISRG', 'BHPLF', 'EADSF', 'RY',
+            'HDB', 'EADSY', 'CMWAY', 'SYK', 'SPGI', 'SBGSF', 'SBGSY', 'UPS', 'ARM', 'HON',
+            'BUD', 'RTNTF', 'UL', 'WFC-PC', 'UNLYF', 'RTX', 'NEE', 'SCHW', 'T', 'SNYNF',
+            'DTEGF', 'SNY', 'MUFG', 'PGR', 'BLK', 'ELV', 'PLD', 'LRCX', 'BUDFF', 'ETN', 'DTEGY',
+            'MBFJF', 'BKNG', 'ALIZF', 'ALIZY', 'KYCCF', 'TOELY', 'TOELF', 'BA', 'TJX', 'TD',
+            'AIQUY', 'MDT', 'AIQUF', 'SONY', 'SNEJF', 'CIHKY', 'DE', 'REGN', 'BMY', 'BP',
+            'LMT', 'VRTX', 'BPAQF', 'CB', 'UBS', 'ESLOY', 'MU', 'CI', 'TSLA', 'AAPL', 'MARA',
+            'SOFI', 'AMD', 'MIO',
+        ],
     }
 
-    # 3. Application's Layout
-    app = DjangoDash(
-        'indicatorapp',
-        suppress_callback_exceptions=True,
-        add_bootstrap_links=True,
-        # external_stylesheets=[dbc.themes.CYBORG],
-    )
-
-    # Beginning the layout. The whole dashboard is contained inside a Div and a Bootstrap Row.
-    app.layout = html.Div([
-        dbc.Row([
-            dbc.Col([
-                # This row holds the dropdowns responsible for the selection of the stock
-                # which informations are going to be displayed.
-                dbc.Row([
-                    # Both dropdowns are placed inside two Bootstrap columns with equal length.
-                    dbc.Col([
-                        # A small title guiding the user on how to use the component.
-                        html.Label('Select the desired sector',
-                                   style={'margin-right': '15px', 'margin-left': '15px'},),
-
-                        # The economic sectors dropdown. It mentions all the ones that are
-                        # available in the 'sector_stocks' dictionary.
-                        dcc.Dropdown(options=[{'label': sector, 'value': sector}
-                                              for sector in sorted(list(sector_stocks.keys()))],
-                                     value='Crypto',
-                                     id='sectors-dropdown',
-                                     style={'margin-right': '15px', 'margin-left': '15px'},
-                                     searchable=False,
-                                     clearable=False,
-                                     )
-                    ], width=6),
-
-                    # The column holding the stock names dropdown.
-                    dbc.Col([
-                        # Nothing new here. Just using the same commands as above.
-                        html.Label('Select the stock to be displayed',
-                                   style={'margin-right': '15px', 'margin-left': '15px'},),
-                        dcc.Dropdown(
-                            id='stocks-dropdown',
-                            style={'margin-right': '15px', 'margin-left': '15px'},
-                            searchable=False,
-                            clearable=False,
-                        )
-                    ], width=6),
-
-                    dbc.Row([
-
-                        # Firstly, the candlestick chart is invoked. It is contained in a dcc.Loading
-                        # object, which presents a loading animation while the data is retrieved.
-                        dcc.Loading(
-                            [dcc.Graph(id='price-chart', figure=fig)],
-                            id='loading-price-chart', type='dot', color='#1F51FF'),
-
-                        # Next, this row will store the time span buttons as well
-                        # as the indicators checklist
-                        dbc.Row([
-
-                            # The buttons occupy 1/3 of the available width.
-                            dbc.Col([
-
-                                # This Div contains the time span buttons for adjusting
-                                # of the x-axis' length.
-                                html.Div([
-                                    html.Button('1W', id='1W-button',
-                                                n_clicks=0, className='btn-secondary'),
-                                    html.Button('1M', id='1M-button',
-                                                n_clicks=0, className='btn-secondary'),
-                                    html.Button('3M', id='3M-button',
-                                                n_clicks=0, className='btn-secondary'),
-                                    html.Button('6M', id='6M-button',
-                                                n_clicks=0, className='btn-secondary'),
-                                    html.Button('1Y', id='1Y-button',
-                                                n_clicks=0, className='btn-secondary'),
-                                    html.Button('3Y', id='3Y-button',
-                                                n_clicks=0, className='btn-secondary'),
-
-                                ], style={'padding': '15px', 'margin-left': '35px'})
-                            ], width=6),
-
-                            # The indicators have the remaining two thirds of the space.
-                            dbc.Col([
-                                dcc.Checklist(
-                                    ['Rolling Mean',
-                                     'Exponential Rolling Mean',
-                                     'Bollinger Bands'],
-                                    inputStyle={'margin-left': '15px',
-                                                'margin-right': '5px'},
-                                    id='complements-checklist',
-                                    style={'margin-top': '20px'}),
-                            ], width=6),
-                        ]),
-                    ]),
-                ]),
-
-                # The left major column closing bracket
-            ], width=8),
-
-            # =======================================================
-
-            dbc.Col([
-                dbc.Row([
-                    # The DataTable stores the prices from the companies that pertain
-                    # to the same economic sector as the one chosen in the dropdowns.
-                    dcc.Loading([
-
-                        dash_table.DataTable(
-                            id='stocks-table',
-                            style_cell={
-                                'font_size': '12px',
-                                'textAlign': 'center'},
-                            style_header={
-                                'backgroundColor': 'white',
-                                'padding-right': '62px',
-                                'border': 'none'},
-                            style_data={
-                                'height': '12px',
-                                'backgroundColor': 'white',
-                                'border': 'none'},
-                            style_table={
-                                'height': '200px',
-                                'overflowY': 'auto'}
-                        )
-                    ], id='loading-table', type='circle', color='#1F51FF'),
-
-                ], style={
-                    'margin-top': '28px',
-                    'margin-top': '15px',
-                    'margin-bottom': '15px',
-                    'margin-right': '15px',
-                    'margin-left': '15px',
-                }),
-
-                # =======================================================
-
-                dbc.Card([
-                    # The card below presents the selected stock's current price.
-                    dbc.CardBody([
-                        # Recall that the name shown as default needs to be 'ABEV3',
-                        # since it is the panel's standard stock.
-                        html.H1('ETH-USD', id='stock-name', style={'font-size': '13px', 'text-align': 'center'}),
-                        dbc.Row([
-                            dbc.Col([
-                                # Placing the current price.
-                                html.P('$ {:.2f}'.format(ambev['Close'].iloc[-1]),
-                                       id='stock-price', style={
-                                        'font-size': '30px', 'margin-left': '5px'})
-                            ], width=8),
-                            dbc.Col([
-                                # This another paragraph shows the price variation.
-                                html.P(
-                                    '{}{:.2%}'.format(
-                                        '+' if ambev_variation > 0 else '', ambev_variation),
-                                    id='stock-variation',
-                                    style={'font-size': '20px',
-                                           # 'margin-top': '25px',
-                                           'color': 'green' if ambev_variation > 0 else 'red'})
-                            ], width=4)
-                        ])
-                    ])
-                ], id='stock-data',
-                   style={
-                       'height': '105px',
-                       'margin-top': '15px',
-                       'margin-bottom': '15px',
-                       'margin-right': '15px',
-                       'margin-left': '15px',
-                   },
-                   color='white'),
-
-                # =======================================================
-
-                html.Hr(
-                    style={
-                       'margin-right': '15px',
-                       'margin-left': '15px',
-                   }
-                ),
-
-                # =======================================================
-
-                dbc.Col([
-                    html.H1('52-Week Data',
-                            style={'font-size': '25px', 'text-align': 'center',
-                                    'color': 'grey', 'margin-top': '5px',
-                                    'margin-bottom': '0px'}
-                    ),
-                    # Creating a Carousel showing the stock's weekly average price and a
-                    # Speedoemeter displaying how far its current price is from
-                    # the minimum and maximum values achieved.
-
-                    html.Div([dcc.Graph(
-                        id='52-avg-week-price',
-                        figure=fig2,
-                    )],
-                             style={
-                                 'margin-top': '5px',
-                                 'margin-right': '15px',
-                                 'margin-left': '15px',
-                                 "height": "100%",
-                             }
-                    ),
-
-                    html.Div([dcc.Graph(
-                        id='52-week-min-max',
-                        figure=fig3,
-                    )],
-                             style={
-                                 'margin-top': '5px',
-                                 'margin-right': '15px',
-                                 'margin-left': '15px',
-                                 "height": "100%",
-                             }
-                    ),
-                ]),
-
-                # =======================================================
-
-                html.Hr(
-                    style={
-                        'margin-right': '15px',
-                        'margin-left': '15px',
-                    }
-                ),
-
-                # =======================================================
-
-                dbc.Row([
-                    # A small title for the section.
-                    html.H2('Correlations', style={'font-size': '12px', 'color': 'grey', 'text-align': 'center'}),
-                    # dbc.Col([
-                    #     # BTCUSD correlation.
-                    #     html.Div([
-                    #         html.H1('BTCUSD', style={'font-size': '10px'}),
-                    #         html.P(id='btcusd-correlation', style={'font-size': '20px', 'margin-top': '5px'})
-                    #     ], style={'text-align': 'center'})
-                    # ], width=6),
-                    dbc.Col([
-                        # Sector correlation.
-                        html.Div([
-                            html.H1('S&P 500', style={'font-size': '10px'}),
-                            html.P(id='sector-correlation', style={'font-size': '20px', 'margin-top': '5px'})
-                        ], style={'text-align': 'center'})
-                    ], width=12),
-                ], style={'margin-top': '2px'})
-
-                # =======================================================
-
-                # The right major column closing bracket.
-            ], width=4)
-        ])
-    ])
-
-    @app.callback(
-        Output('stocks-dropdown', 'options'),
-        Input('sectors-dropdown', 'value')
-    )
-    def set_symbol_options(sector):
-        return [{'label': i, 'value': i} for i in sector_stocks[sector]]
-
-    @app.callback(
-        Output('stocks-dropdown', 'value'),
-        Input('stocks-dropdown', 'options')
-    )
-    def set_symbol_value(available_options):
-        return available_options[0]['value']
-
-    @app.callback(
-        Output('price-chart', 'figure'),
-        Input('stocks-dropdown', 'value'),
-        Input('complements-checklist', 'value'),
-        Input('1W-button', 'n_clicks'),
-        Input('1M-button', 'n_clicks'),
-        Input('3M-button', 'n_clicks'),
-        Input('6M-button', 'n_clicks'),
-        Input('1Y-button', 'n_clicks'),
-        Input('3Y-button', 'n_clicks'),
-    )
-    def change_price_chart(stock, checklist_values, button_1w, button_1m, button_3m, button_6m, button_1y, button_3y):
-        # Retrieving the stock's data.
-        # tick = yf.Ticker(f"{stock}")
-        # df = tick.history(period='5y')
-        df = pd.DataFrame(list(Ohlcv.objects.filter(symbol__exact=f"{stock}").values()))
-        df.set_index(df['timestamp'], inplace=True)
-
-        # Applying some indicators to its closing prices. Below we are measuring
-        # Bollinger Bands.
-        df_bbands = bbands(df['Close'].astype('float'), length=20, std=2)
-
-        # Measuring the Rolling Mean and Exponential Rolling means
-        df['Rolling Mean'] = df['Close'].rolling(window=9).mean()
-        df['Exponential Rolling Mean'] = df['Close'].ewm(span=9, adjust=False).mean()
-
-        # Each metric will have its own color in the chart.
-        colors = {'Rolling Mean': '#6fa8dc',
-                  'Exponential Rolling Mean': '#03396c', 'Bollinger Bands Low': 'darkorange',
-                  'Bollinger Bands AVG': 'brown',
-                  'Bollinger Bands High': 'darkorange'}
-
-        fig = go.Figure()
-        fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], close=df['Close'],
-                                     high=df['High'], low=df['Low'], name='Stock Price'))
-
-        # If the user has selected any of the indicators in the checklist, we'll represent it in the chart.
-        if checklist_values != None:
-            for metric in checklist_values:
-
-                # Adding the Bollinger Bands' typical three lines.
-                if metric == 'Bollinger Bands':
-                    fig.add_trace(go.Scatter(
-                        x=df.index, y=df_bbands.iloc[:, 0],
-                        mode='lines', name=metric,
-                        line={'color': colors['Bollinger Bands Low'], 'width': 1}))
-
-                    fig.add_trace(go.Scatter(
-                        x=df.index, y=df_bbands.iloc[:, 1],
-                        mode='lines', name=metric,
-                        line={'color': colors['Bollinger Bands AVG'], 'width': 1}))
-
-                    fig.add_trace(go.Scatter(
-                        x=df.index, y=df_bbands.iloc[:, 2],
-                        mode='lines', name=metric,
-                        line={'color': colors['Bollinger Bands High'], 'width': 1}))
-
-                # Plotting any of the other metrics remained, if they are chosen.
-                else:
-                    fig.add_trace(go.Scatter(
-                        x=df.index, y=df[metric], mode='lines', name=metric,
-                        line={'color': colors[metric], 'width': 1}))
-
-        fig.update_layout(
-            margin=dict(l=10, r=10, b=5, t=5),
-            autosize=False,
-            showlegend=False,
-            template='plotly_white',
-        )
-        # Defining the chart's x-axis length according to the button clicked.
-        # To do this, we'll alter the 'min_date' and 'max_date' global variables that were
-        # defined in the beginning of the script.
-        global min_date, max_date
-        # changed_id = ctx.triggered[0]["prop_id"].split(".")
-        # if '1W-button' in changed_id:
-        #     min_date = df.iloc[-1].name - datetime.timedelta(7)
-        #     max_date = df.iloc[-1].name
-        # elif '1M-button' in changed_id:
-        #     min_date = df.iloc[-1].name - datetime.timedelta(30)
-        #     max_date = df.iloc[-1].name
-        # elif '3M-button' in changed_id:
-        #     min_date = df.iloc[-1].name - datetime.timedelta(90)
-        #     max_date = df.iloc[-1].name
-        # elif '6M-button' in changed_id:
-        #     min_date = df.iloc[-1].name - datetime.timedelta(180)
-        #     max_date = df.iloc[-1].name
-        # elif '1Y-button' in changed_id:
-        #     min_date = df.iloc[-1].name - datetime.timedelta(365)
-        #     max_date = df.iloc[-1].name
-        # elif '3Y-button' in changed_id:
-        #     min_date = df.iloc[-1].name - datetime.timedelta(1095)
-        #     max_date = df.iloc[-1].name
-        # else:
-        #     min_date = min_date
-        #     max_date = max_date
-        #     fig.update_xaxes(range=[min_date, max_date])
-        #     fig.update_yaxes(tickprefix='$')
-        #     return fig
-
-        # Updating the x-axis range.
-        fig.update_xaxes(range=[min_date, max_date])
-        fig.update_yaxes(tickprefix='$')
-        return fig
-
-    @app.callback(
-        Output('stocks-table', 'data'),
-        Output('stocks-table', 'columns'),
-        Input('sectors-dropdown', 'value')
-    )
-    # Updating the panel's DataTable
-    def update_stocks_table(sector):
-        global sector_stocks
-        # This DataFrame will be the base for the table.
-        df = pd.DataFrame({'Stock': [stock for stock in sector_stocks[sector]],
-                           'Close': [np.nan for i in range(len(sector_stocks[sector]))]},
-                          index=[stock for stock in sector_stocks[sector]])
-        # Each one of the stock names and their respective prices are going to be stored
-        # in the 'df'  DataFrame.
-        for stock in sector_stocks[sector]:
-            tick = yf.Ticker(f"{stock}")
-            stock_value = tick.history(period='1wk')['Close'].iloc[1]
-
-            # stock_value = pd.DataFrame(list(Ohlcv.objects.filter(symbol__exact=f"{stock}").values()))[['Close', 'timestamp']].iloc[1]
-            # stock_value.set_index(stock_value['timestamp'], inplace=True)
-
-            df = df.astype({'Close': 'str'})
-            df.loc[stock, 'Close'] = f'$ {stock_value :.2f}'
-
-        # Finally, the DataFrame cell values are stored in a dictionary and its column
-        # names in a list of dictionaries.
-        return df.to_dict('records'), [{'name': i, 'id': i} for i in df.columns]
-
-    @app.callback(
-        Output('stock-name', 'children'),
-        Output('stock-price', 'children'),
-        Output('stock-variation', 'children'),
-        Output('stock-variation', 'style'),
-        Input('stocks-dropdown', 'value')
-    )
-    def update_stock_data_card(stock):
-        # Retrieving data from the Yahoo Finance API.
-        tick = yf.Ticker(f"{stock}")
-        df = tick.history(period='1wk')['Close']
-        # df = pd.DataFrame(list(Ohlcv.objects.filter(symbol__exact=f"{stock}").values()))[['Close', 'timestamp']]
-        # df.set_index(df['timestamp'], inplace=True)
-        # df.drop(columns=['timestamp'], inplace=True)
-        # df['Close'] = df['Close'].astype('float')
-
-        # Getting the chosen stock's current price and variation in comparison to
-        # its previous value.
-        stock_current_price = df.iloc[-1]
-        stock_variation = 1 - (df.iloc[-1] / df.iloc[-2])
-
-        # Note that as in the Carousel, the varitation value will be painted in red or
-        # green depending if it is a negative or positive number.
-        return (
-            stock,
-            '$ {:.2f}'.format(stock_current_price),
-            '{}{:.2%}'.format('+' if stock_variation > 0 else '', stock_variation),
-            {'font-size': '14px', 'margin-top': '25px', 'color': 'green' if stock_variation > 0 else 'red'}
-        )
-
-    @app.callback(
-        Output('52-avg-week-price', 'figure'),
-        Input('stocks-dropdown', 'value')
-    )
-    def update_average_weekly_price(stock):
-        # Receiving the stock's prices and measuring its average weekly price
-        # in the last 52 weeks.
-        tick = yf.Ticker(f"{stock}")
-        df = tick.history(period='2y')['Close']
-
-        # df = pd.DataFrame(list(Ohlcv.objects.filter(symbol__exact=f"{stock}").values()))[['Close', 'timestamp']]
-        # df.set_index(df['timestamp'], inplace=True)
-        # df.drop(columns=['timestamp'], inplace=True)
-
-        df.index = pd.to_datetime(df.index)
-        df_avg_52 = df.resample('W').mean().iloc[-52:]
-
-        # Plotting the data in a line chart.
-        fig2 = go.Figure()
-        fig2.add_trace(go.Scatter(x=df_avg_52.index, y=df_avg_52.values))
-        fig2.update_layout(
-            title={'text': 'Weekly Average Price', 'y': 0.9},
-            font={'size': 8},
-            height=220,
-            margin=dict(l=10, r=10, b=5, t=5),
-            autosize=False,
-            showlegend=False,
-            template='plotly_white',
-        )
-        fig2.update_xaxes(tickformat='%m-%y', showticklabels=False,
-                          gridcolor='darkgrey', showgrid=False)
-        fig2.update_yaxes(range=[df_avg_52.min() - 1, df_avg_52.max() + 1.5],
-                          showticklabels=False, gridcolor='darkgrey', showgrid=False)
-        return fig2
-
-    # This function will update the speedometer chart.
-    @app.callback(
-        Output('52-week-min-max', 'figure'),
-        Input('stocks-dropdown', 'value')
-    )
-    def update_min_max(stock):
-        # The same logic as 'update_average_weekly_price', but instead we are getting
-        # the minimum and maximum prices reached in the last 52 weeks and comparing
-        # them with the stock's current price.
-        tick = yf.Ticker(f"{stock}")
-        df = tick.history(period='2y')['Close']
-
-        # df = pd.DataFrame(list(Ohlcv.objects.filter(symbol__exact=f"{stock}").values()))[['Close', 'timestamp']]
-        # df.set_index(df['timestamp'], inplace=True)
-        # df.drop(columns=['timestamp'], inplace=True)
-        # df['Close'] = df['Close'].astype('float')
-
-        df.index = pd.to_datetime(df.index)
-        df_avg_52 = df.resample('W').mean().iloc[-52:]
-        df_52_weeks_min = df_avg_52.resample('W').min()[-52:].min()
-        df_52_weeks_max = df_avg_52.resample('W').max()[-52:].max()
-        current_price = df.iloc[-1]
-        fig3 = go.Figure()
-        fig3.add_trace(go.Indicator(mode='gauge+number', value=current_price,
-                                    domain={'x': [0, 1], 'y': [0, 1]},
-                                    gauge={
-                                        'axis': {'range': [df_52_weeks_min, df_52_weeks_max]},
-                                        'bar': {'color': '#606bf3'}}))
-        fig3.update_layout(
-            title={'text': 'Min-Max Prices', 'y': 0.9},
-            font={'size': 8},
-            margin=dict(l=35, r=0, b=5, t=5),
-            autosize=False,
-            showlegend=False,
-            template='plotly_white',
-        )
-        return fig3
-
-    @app.callback(
-        Output('btcusd-correlation', 'children'),
-        Input('stocks-dropdown', 'value'),
-    )
-    def btcusd_correlation(stock):
-        start = datetime.datetime(2023, 12, 31).date() - datetime.timedelta(days=7 * 52)
-        end = datetime.datetime(2023, 12, 31).date()
-
-        btcusd = yf.Ticker('BTC-USD').history(start=start, end=end)['Close']
-        stock_close = yf.Ticker(f'{stock}').history(start=start, end=end)['Close']
-
-        df = pd.concat([btcusd, stock_close], axis=1, join='inner')
-        df.columns = ['btcusd', 'stock']
-        df.dropna(inplace=True)
-
-        # Returning the correlation coefficient.
-        return f"{pearsonr(df.btcusd, df.stock)[0] :.2%}"
-
-    @app.callback(
-        Output('sector-correlation', 'children'),
-        Input('sectors-dropdown', 'value'),
-        Input('stocks-dropdown', 'value')
-    )
-    def sector_correlation(sector, stock):
-        start = datetime.datetime(2023, 12, 31).date() - datetime.timedelta(days=7 * 52)
-        end = datetime.datetime(2023, 12, 31).date()
-
-        # Retrieving the daily closing prices from the selected stocks in the prior 52 weeks.
-        tick = yf.Ticker(f'{stock}')
-        stock_close = tick.history(start=start, end=end)['Close']
-
-        # Creating a DataFrame that will store the prices in the past 52 weeks
-        # from all the stocks that pertain to the economic domain selected.
-        sector_df = pd.DataFrame()
-
-        # Retrieving the price for each of the stocks included in 'sector_stocks'
-        global sector_stocks
-        stocks_from_sector = [stock_ for stock_ in sector_stocks[sector]]
-        for stock_ in stocks_from_sector:
-            tick = yf.Ticker(f'{stock_}')
-            sector_df[stock_] = tick.history(start=start, end=end)['Close']
-
-        # With all the prices obtained, let's measure the sector's daily average value.
-        sector_daily_average = sector_df.mean(axis=1)
-
-        # Now, returning the correlation coefficient.
-        return f'{pearsonr(sector_daily_average, stock_close)[0] :.2%}'
-
-
-    return render(request, 'indicatorapp/index.html')
-
-
+    ticker = request.GET.get('ticker')
+    if ticker == None:
+        ticker = 'BTC-USD'
+
+    if ticker not in symbol_list:
+        context = {'ticker': ticker}
+        return render(request, 'indicatorapp/error.html', context)
+
+    df_all = pd.DataFrame(Ohlcv.objects.all().values())
+    df = pd.concat([df_all[df_all['symbol']==symbol].set_index('timestamp')['Close'].astype(float) for symbol in symbol_list], axis=1)
+    df.columns = symbol_list
+    df.interpolate(inplace=True)
+
+    technical_analysis = df_all[df_all['symbol']==ticker]
+    technical_analysis['day'] = technical_analysis['timestamp'].apply(lambda x: x.date()).astype(str)
+    technical_analysis[['Close', 'High', 'Low', 'Open', 'Volume']] = technical_analysis[['Close', 'High', 'Low', 'Open', 'Volume']].astype(float)
+    technical_analysis = get_rsi(technical_analysis)
+    technical_analysis = get_cci(technical_analysis)
+    technical_analysis = get_fnMACD(technical_analysis, 'Close')
+    technical_analysis = get_stochastic(technical_analysis)
+    technical_analysis = get_mfi(technical_analysis)
+    technical_analysis = get_ADX(technical_analysis)
+    technical_analysis.dropna(inplace=True)
+
+    if len(technical_analysis) > 180:
+        max_length = 180
+    else:
+        max_length = len(technical_analysis)-1
+
+    result_score = 0
+    rsi_num = technical_analysis.iloc[len(technical_analysis)-1]['RSI']
+    if rsi_num > 80:
+        rsi_content = 'Overbought'
+        result_score -= 1
+    elif rsi_num < 20:
+        rsi_content = 'Oversold'
+        result_score += 1
+    else:
+        rsi_content = 'Normal'
+
+    cci_num = technical_analysis.iloc[len(technical_analysis)-1]['CCI']
+    cci_num_delay = technical_analysis.iloc[len(technical_analysis) - 2]['CCI']
+    if (cci_num > cci_num_delay) and (cci_num < -100):
+        cci_content = 'Buy'
+        result_score += 1
+    elif (cci_num < cci_num_delay) and (cci_num > 100):
+        cci_content = 'Sell'
+        result_score -= 1
+    else:
+        cci_content = 'Normal'
+
+    macd_num = technical_analysis.iloc[len(technical_analysis)-1]['MACD_Close']
+    macd_sig_num = technical_analysis.iloc[len(technical_analysis)-1]['MACDSignal_Close']
+    if (macd_num > macd_sig_num) and (macd_num > 0) and (macd_sig_num > 0):
+        macd_content = 'Buy'
+        result_score += 1
+    elif (macd_num < macd_sig_num) and (macd_num < 0) and (macd_sig_num < 0):
+        macd_content = 'Sell'
+        result_score -= 1
+    else:
+        macd_content = 'Normal'
+
+    fast_k_num = technical_analysis.iloc[len(technical_analysis)-1]['fast_k']
+    if fast_k_num > 80:
+        fast_k_content = 'Overbought'
+        result_score -= 1
+    elif fast_k_num < 20:
+        fast_k_content = 'Oversold'
+        result_score += 1
+    else:
+        fast_k_content = 'Normal'
+
+    mfi_num = technical_analysis.iloc[len(technical_analysis)-1]['mfi']
+    if mfi_num > 80:
+        mfi_content = 'Overbought'
+        result_score -= 1
+    elif mfi_num < 20:
+        mfi_content = 'Oversold'
+        result_score += 1
+    else:
+        mfi_content = 'Normal'
+
+    adx_num = technical_analysis.iloc[len(technical_analysis) - 1]['ADX']
+    if adx_num > 25:
+        adx_content = 'Strong trend'
+        result_score += 2
+    elif adx_num < 20:
+        adx_content = 'Low trend'
+        result_score -= 2
+    else:
+        adx_content = 'Normal trend'
+
+    if result_score >= 3:
+        summary_result = 'BUY (Maintain)'
+    elif result_score <= -3:
+        summary_result = 'SELL (Maintain)'
+    else:
+        summary_result = 'No Signal for Now...'
+
+    technical_analysis_numbers = {
+        'RSI': round(rsi_num, 2),
+        'CCI': round(cci_num, 2),
+        'MACD': round(macd_num, 2),
+        'STOCHASTIC': round(fast_k_num, 2),
+        'MFI': round(mfi_num, 2),
+        'ADX': round(adx_num, 2),
+    }
+    technical_analysis_content = {
+        'RSI': rsi_content,
+        'CCI': cci_content,
+        'MACD': macd_content,
+        'STOCHASTIC': fast_k_content,
+        'MFI': mfi_content,
+        'ADX': adx_content,
+    }
+
+    technical_analysis_dataset = {
+        'index': technical_analysis['day'].tolist()[-max_length:],
+        'rsi': [
+            {
+                'label': 'Close',
+                'data': technical_analysis['Close'].tolist()[-max_length:],
+                'borderColor': ['black'],
+                'backgroundColor': ['black'],
+                'yAxisID': 'Close',
+            }, {
+                'label': 'RSI',
+                'data': technical_analysis['RSI'].tolist()[-max_length:],
+                'borderColor': ['#FF0000'],
+                'backgroundColor': ['#FF0000'],
+                'yAxisID': 'RSI',
+            }
+        ],
+        'cci': [
+            {
+                'label': 'Close',
+                'data': technical_analysis['Close'].tolist()[-max_length:],
+                'borderColor': ['black'],
+                'backgroundColor': ['black'],
+                'yAxisID': 'Close',
+            }, {
+                'label': 'CCI',
+                'data': technical_analysis['CCI'].tolist()[-max_length:],
+                'borderColor': ['#FF0000'],
+                'backgroundColor': ['#FF0000'],
+                'yAxisID': 'CCI',
+            }
+        ],
+        'macd': [
+            {
+                'label': 'Close',
+                'data': technical_analysis['Close'].tolist()[-max_length:],
+                'borderColor': ['black'],
+                'backgroundColor': ['black'],
+                'yAxisID': 'Close',
+            }, {
+                'label': 'MACD',
+                'data': technical_analysis['MACD_Close'].tolist()[-max_length:],
+                'borderColor': ['#FF0000'],
+                'backgroundColor': ['#FF0000'],
+                'yAxisID': 'macd',
+            }, {
+                'label': 'MACD signal',
+                'data': technical_analysis['MACDSignal_Close'].tolist()[-max_length:],
+                'borderColor': ['#80FF00'],
+                'backgroundColor': ['#80FF00'],
+                'yAxisID': 'macd',
+            }
+        ],
+        'stochastic': [
+            {
+                'label': 'Close',
+                'data': technical_analysis['Close'].tolist()[-max_length:],
+                'borderColor': ['black'],
+                'backgroundColor': ['black'],
+                'yAxisID': 'Close',
+            }, {
+                'label': 'fast k',
+                'data': technical_analysis['fast_k'].tolist()[-max_length:],
+                'borderColor': ['#FF0000'],
+                'backgroundColor': ['#FF0000'],
+                'yAxisID': 'fast_k',
+            }
+        ],
+        'mfi': [
+            {
+                'label': 'Close',
+                'data': technical_analysis['Close'].tolist()[-max_length:],
+                'borderColor': ['black'],
+                'backgroundColor': ['black'],
+                'yAxisID': 'Close',
+            }, {
+                'label': 'MFI',
+                'data': technical_analysis['mfi'].tolist()[-max_length:],
+                'borderColor': ['#FF0000'],
+                'backgroundColor': ['#FF0000'],
+                'yAxisID': 'mfi',
+            }
+        ],
+        'adx': [
+            {
+                'label': 'Close',
+                'data': technical_analysis['Close'].tolist()[-max_length:],
+                'borderColor': ['black'],
+                'backgroundColor': ['black'],
+                'yAxisID': 'Close',
+            }, {
+                'label': 'ADX',
+                'data': technical_analysis['ADX'].tolist()[-max_length:],
+                'borderColor': ['#FF0000'],
+                'backgroundColor': ['#FF0000'],
+                'yAxisID': 'adx',
+            }
+        ],
+    }
+
+    scaler = StandardScaler()
+    scaler.fit(df)
+    scaled = scaler.transform(df)
+    df_scaled = pd.DataFrame(data=scaled, columns=df.columns)
+    df_scaled.index = df.index
+    df_scaled.columns = symbol_list
+
+    corr = df_scaled.corr(method='pearson').sort_values(ticker, ascending=False)
+
+    with_t = corr[1:3].index.tolist()
+    anti_t = corr[-7:-5].index.tolist()
+
+    with_index = corr[1:11].index.tolist()
+    with_value = corr[ticker][1:11].values.tolist()
+
+    df_all['day'] = df_all['timestamp'].apply(lambda x: x.date())
+
+    ticker_index = df_all[df_all['symbol']==ticker]['day'].astype(str).tolist()[-max_length:]
+    ticker_value = df_scaled[ticker].astype(float).tolist()[-max_length:]
+    with1_value = df_scaled[with_t[0]].astype(float).tolist()[-max_length:]
+    with2_value = df_scaled[with_t[1]].astype(float).tolist()[-max_length:]
+    anti1_value = df_scaled[anti_t[0]].astype(float).tolist()[-max_length:]
+    anti2_value = df_scaled[anti_t[1]].astype(float).tolist()[-max_length:]
+
+    dataset_for_with = [
+        {
+            'label': with_t[0],
+            'data': with1_value,
+            'borderColor': ['#80FF00'],
+            'backgroundColor': ['#80FF00'],
+        }, {
+            'label': with_t[1],
+            'data': with2_value,
+            'borderColor': ['#D0F5A9'],
+            'backgroundColor': ['#D0F5A9'],
+        }, {
+            'label': ticker,
+            'data': ticker_value,
+            'borderColor': ['black'],
+            'backgroundColor': ['black'],
+        }
+    ]
+
+    dataset_for_anti = [
+        {
+            'label': anti_t[0],
+            'data': anti1_value,
+            'borderColor': ['#F5A9A9'],
+            'backgroundColor': ['#F5A9A9'],
+        }, {
+            'label': anti_t[1],
+            'data': anti2_value,
+            'borderColor': ['#FF0000'],
+            'backgroundColor': ['#FF0000'],
+        }, {
+            'label': ticker,
+            'data': ticker_value,
+            'borderColor': ['black'],
+            'backgroundColor': ['black'],
+        }
+    ]
+
+    if ticker in sector_stocks['Stock']:
+        financial_statement = pd.DataFrame(FinancialStatement.objects.all().values()).sort_values('year')
+        financial_statement_index = financial_statement[financial_statement['symbol']==ticker]['year'].tolist()
+        dataset_for_gross_profit = [
+            {
+                'label': with_t[0],
+                'data': financial_statement[financial_statement['symbol']==with_t[0]]['gross_profit_ratio'].astype(float).tolist(),
+                'borderColor': ['#F5A9A9'],
+                'backgroundColor': ['#F5A9A9'],
+            }, {
+                'label': with_t[1],
+                'data': financial_statement[financial_statement['symbol']==with_t[1]]['gross_profit_ratio'].astype(float).tolist(),
+                'borderColor': ['#A9F5A9'],
+                'backgroundColor': ['#A9F5A9'],
+            }, {
+                'label': ticker,
+                'data': financial_statement[financial_statement['symbol']==ticker]['gross_profit_ratio'].astype(float).tolist(),
+                'borderColor': ['#A9A9F5'],
+                'backgroundColor': ['#A9A9F5'],
+            }
+        ]
+        dataset_for_EBITDA = [
+            {
+                'label': with_t[0],
+                'data': financial_statement[financial_statement['symbol'] == with_t[0]]['EBITDA_ratio'].astype(
+                    float).tolist(),
+                'borderColor': ['#F5A9A9'],
+                'backgroundColor': ['#F5A9A9'],
+            }, {
+                'label': with_t[1],
+                'data': financial_statement[financial_statement['symbol'] == with_t[1]]['EBITDA_ratio'].astype(
+                    float).tolist(),
+                'borderColor': ['#A9F5A9'],
+                'backgroundColor': ['#A9F5A9'],
+            }, {
+                'label': ticker,
+                'data': financial_statement[financial_statement['symbol'] == ticker]['EBITDA_ratio'].astype(
+                    float).tolist(),
+                'borderColor': ['#A9A9F5'],
+                'backgroundColor': ['#A9A9F5'],
+            }
+        ]
+        dataset_for_operating_income = [
+            {
+                'label': with_t[0],
+                'data': financial_statement[financial_statement['symbol'] == with_t[0]]['operating_income_ratio'].astype(
+                    float).tolist(),
+                'borderColor': ['#F5A9A9'],
+                'backgroundColor': ['#F5A9A9'],
+            }, {
+                'label': with_t[1],
+                'data': financial_statement[financial_statement['symbol'] == with_t[1]]['operating_income_ratio'].astype(
+                    float).tolist(),
+                'borderColor': ['#A9F5A9'],
+                'backgroundColor': ['#A9F5A9'],
+            }, {
+                'label': ticker,
+                'data': financial_statement[financial_statement['symbol'] == ticker]['operating_income_ratio'].astype(
+                    float).tolist(),
+                'borderColor': ['#A9A9F5'],
+                'backgroundColor': ['#A9A9F5'],
+            }
+        ]
+        dataset_for_net_income = [
+            {
+                'label': with_t[0],
+                'data': financial_statement[financial_statement['symbol'] == with_t[0]]['net_income_ratio'].astype(
+                    float).tolist(),
+                'borderColor': ['#F5A9A9'],
+                'backgroundColor': ['#F5A9A9'],
+            }, {
+                'label': with_t[1],
+                'data': financial_statement[financial_statement['symbol'] == with_t[1]]['net_income_ratio'].astype(
+                    float).tolist(),
+                'borderColor': ['#A9F5A9'],
+                'backgroundColor': ['#A9F5A9'],
+            }, {
+                'label': ticker,
+                'data': financial_statement[financial_statement['symbol'] == ticker]['net_income_ratio'].astype(
+                    float).tolist(),
+                'borderColor': ['#A9A9F5'],
+                'backgroundColor': ['#A9A9F5'],
+            }
+        ]
+
+        card_box = FinancialStatement.objects.filter(symbol__exact=ticker).order_by('year')
+
+        context = {
+            'symbol_list': symbol_list,
+            'sector_stocks': sector_stocks['Stock'],
+            'ticker': ticker,
+            'with_t': with_t,
+            'anti_t': anti_t,
+            'ticker_index': ticker_index,
+            'with_index': with_index,
+            'with_value': with_value,
+            'dataset_for_with': dataset_for_with,
+            'dataset_for_anti': dataset_for_anti,
+            'financial_statement': card_box,
+            'financial_statement_index': financial_statement_index,
+            'dataset_for_gross_profit': dataset_for_gross_profit,
+            'dataset_for_EBITDA': dataset_for_EBITDA,
+            'dataset_for_operating_income': dataset_for_operating_income,
+            'dataset_for_net_income': dataset_for_net_income,
+            'technical_analysis_numbers': technical_analysis_numbers,
+            'technical_analysis_content': technical_analysis_content,
+            'technical_analysis_dataset': technical_analysis_dataset,
+            'summary_result': summary_result,
+            'anti1_value': len(anti1_value),
+        }
+    else:
+        context = {
+            'symbol_list': symbol_list,
+            'sector_stocks': sector_stocks['Stock'],
+            'ticker': ticker,
+            'with_t': with_t,
+            'anti_t': anti_t,
+            'ticker_index': ticker_index,
+            'with_index': with_index,
+            'with_value': with_value,
+            'dataset_for_with': dataset_for_with,
+            'dataset_for_anti': dataset_for_anti,
+            'financial_statement_index': None,
+            'dataset_for_gross_profit': None,
+            'dataset_for_EBITDA': None,
+            'dataset_for_operating_income': None,
+            'dataset_for_net_income': None,
+            'technical_analysis_numbers': technical_analysis_numbers,
+            'technical_analysis_content': technical_analysis_content,
+            'technical_analysis_dataset': technical_analysis_dataset,
+            'summary_result': summary_result,
+            'anti1_value': len(anti1_value),
+        }
+
+    return render(request, 'indicatorapp/detail.html', context)
+
+
+
+# FinancialStatement
 def crawler(request):
+    from financetoolkit import Toolkit
 
-    sector_stocks = {
-        'Crypto': ['BTC-USD', 'ETH-USD', 'USDT-USD', 'USDC-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'DOGE-USD'],
-        'Stock': ['TSLA', 'AAPL', 'MARA', 'SOFI', 'AMD', 'MIO', 'F', 'LTHM'],
-        # 'Futures': ['ES=F', 'YM=F', 'NQ=F', 'RTY=F', 'ZB=F', 'GC=F'],
-    }
+    API_KEY = "gCBxDtKx26xBXWD9iULeQboBZNAKaiCK"
+    # API_KEY = 'bb5b19dd01ac8ec7f418bd292a002013'
+    symbol_list = [
+        'PM',
+        'HSBC', 'GS', 'C', 'AMGN', 'BHP', 'COP', 'LOW', 'ISRG', 'BHPLF', 'EADSF', 'RY',
+        'HDB', 'EADSY', 'CMWAY', 'SYK', 'SPGI', 'SBGSF', 'SBGSY', 'UPS', 'ARM', 'HON',
+        'BUD', 'RTNTF', 'UL', 'WFC-PC', 'UNLYF', 'RTX', 'NEE', 'SCHW', 'T', 'SNYNF',
+        'DTEGF', 'SNY', 'MUFG', 'PGR', 'BLK', 'ELV', 'PLD', 'LRCX', 'BUDFF', 'ETN', 'DTEGY',
+        'MBFJF', 'BKNG', 'ALIZF', 'ALIZY', 'KYCCF', 'TOELY', 'TOELF', 'BA', 'TJX', 'TD',
+        'AIQUY', 'MDT', 'AIQUF', 'SONY', 'SNEJF', 'CIHKY', 'DE', 'REGN', 'BMY', 'BP',
+        'LMT', 'VRTX', 'BPAQF', 'CB', 'UBS', 'ESLOY', 'MU', 'CI',
+    ]
 
-    for sc in sector_stocks['Crypto']:
-        tick = yf.Ticker(sc)
-        df = tick.history(period='5y')
-        i = Item.objects.create(
-            symbol=sc,
-            name=sc,
-            country='',
-            market='',
-            sectorName='',
-            sectorSymbol='',
-        )
-        i.save()
-        for index, row in df.iterrows():
-            digit = digit_length(row['Open'])
-            o = Ohlcv.objects.create(
-                symbol=sc,
-                interval = '1d',
-                timestamp = index,
-                open = round(row['Open'], 8-digit),
-                high = round(row['High'], 8-digit),
-                low = round(row['Low'], 8-digit),
-                close = round(row['Close'], 8-digit),
-                volume = row['Volume'],
-            )
-            o.save()
+    for symbol in symbol_list:
+        companies = Toolkit([symbol], api_key=API_KEY)
 
+        # Obtain the balance sheets from each company
+        balance_sheet_statement = companies.get_balance_sheet_statement()
+        income_statement = companies.get_income_statement()
+        cashflow_statement = companies.get_cash_flow_statement()
+        # enterprise = companies.get_enterprise()
 
-    for ss in sector_stocks['Stock']:
-        tick = yf.Ticker(ss)
-        df = tick.history(period='5y')
-        i = Item.objects.create(
-            symbol=ss,
-            name=ss,
-            country='',
-            market='',
-            sectorName='',
-            sectorSymbol='',
-        )
-        i.save()
-        for index, row in df.iterrows():
-            digit = digit_length(row['Open'])
-            o = Ohlcv.objects.create(
-                symbol=ss,
-                interval='1d',
-                timestamp=index,
-                open=round(row['Open'], 8-digit),
-                high=round(row['High'], 8-digit),
-                low=round(row['Low'], 8-digit),
-                close=round(row['Close'], 8-digit),
-                volume=row['Volume'],
+        year_list = set(list(set(balance_sheet_statement.columns.tolist()).intersection(income_statement.columns.tolist()))).intersection(cashflow_statement.columns.tolist())
+        for year in year_list:
+            o = FinancialStatement.objects.create(
+                symbol=symbol,
+                year=year,
+                # market_cap=enterprise.loc[year]['Market Capitalization'],
+                revenue=income_statement.loc['Revenue'][year],
+                net_income=income_statement.loc['Net Income'][year],
+                net_debt=balance_sheet_statement.loc['Net Debt'][year],
+                EBITDA=income_statement.loc['EBITDA'][year],
+                cost_and_expenses=income_statement.loc['Cost and Expenses'][year],
+                depreciation_and_amortization=income_statement.loc['Depreciation and Amortization'][year],
+                total_current_assets=balance_sheet_statement.loc['Total Current Assets'][year],
+                total_current_liabilities=balance_sheet_statement.loc['Total Current Liabilities'][year],
+                total_non_current_liabilities=balance_sheet_statement.loc['Total Non Current Liabilities'][year],
+                cash_flow_from_operations=cashflow_statement.loc['Cash Flow from Operations'][year],
+                cash_flow_from_investing=cashflow_statement.loc['Cash Flow from Investing'][year],
+                cash_flow_from_financing=cashflow_statement.loc['Cash Flow from Financing'][year],
+                cash_beginning_of_period=cashflow_statement.loc['Cash Beginning of Period'][year],
+                cash_end_of_period=cashflow_statement.loc['Cash End of Period'][year],
+                gross_profit_ratio=income_statement.loc['Gross Profit Ratio'][year],
+                EBITDA_ratio=income_statement.loc['EBITDA Ratio'][year],
+                operating_income_ratio=income_statement.loc['Operating Income Ratio'][year],
+                net_income_ratio=income_statement.loc['Net Income Ratio'][year],
+                # earnings_yield=round(income_statement.loc['EBITDA'][year] / (enterprise.loc[year]['Market Capitalization'] + balance_sheet_statement.loc['Net Debt'][year]), 6),
+                # return_on_capital=round(income_statement.loc['EBITDA'][year] / (
+                #         (balance_sheet_statement.loc['Total Current Assets'][year]-balance_sheet_statement.loc['Total Current Liabilities'][year]) + \
+                #         (balance_sheet_statement.loc['Total Non Current Liabilities'][year] - income_statement.loc['Depreciation and Amortization'][year])), 6),
             )
             o.save()
 
     return render(request, 'indicatorapp/crawler.html')
 
+
+'''
+
+# USBureauEvent
+def crawler(request):
+    df = pd.read_csv('CSV.CSV', encoding="UTF-8")
+    df['start_time'] = df['start_time'].apply(lambda x: x[1:] if '\x08' in x else x)
+    df['end_time'] = df['end_time'].apply(lambda x: x[1:] if '\x08' in x else x)
+    for index, row in df.iterrows():
+        o = USBureauEvent.objects.create(
+            name=row['event'],
+            date=datetime.datetime.strptime(row['start_date'] + ' ' + row['start_time'], '%Y-%m-%d %H:%M:%S'),
+            value=None,
+        )
+        o.save()
+    return render(request, 'crawler.html')
+
+
+# Ohlcv
+def crawler(request):
+    symbol_list = [
+        'LTHM',
+        'NSRGY',
+        'PFE',
+    ]
+
+    for sc in symbol_list:
+        try:
+            tick = yf.Ticker(sc)
+            df = tick.history(period='1y')
+            for index, row in df.iterrows():
+                digit = digit_length(row['Open'])
+                o = Ohlcv.objects.create(
+                    symbol=sc,
+                    interval = '1d',
+                    timestamp = index,
+                    Open = round(row['Open'], 8-digit),
+                    High = round(row['High'], 8-digit),
+                    Low = round(row['Low'], 8-digit),
+                    Close = round(row['Close'], 8-digit),
+                    Volume = row['Volume'],
+                )
+                o.save()
+        except:
+            pass
+
+    return render(request, 'indicatorapp/crawler.html')
+
 def digit_length(n):
     return int(math.log10(n)) + 1 if n else 0
+
+'''

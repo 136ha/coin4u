@@ -8,45 +8,30 @@
 
 <div style="text-align: center; max-width: 500px; margin: 4rem auto;">
     <div>
-        <p>
-<!--            {{ target_user.date_joined }}-->
-        </p>
-
         {% if target_user.profile %}
         <img src="{{ target_user.profile.image.url }}" alt="" style="height: 8rem; width 8rem; border-radius: 10rem; margin-bottom: 2rem;">
-
-        <h2>
+        <h1>
             {{ target_user.profile.nickname }}
-            {% if target_user == user %}
-            <a href="{% url 'profileapp:update' pk=target_user.profile.pk %}">
-                Edit
-            </a>
-            {% endif %}
-        </h2>
-        <h5>
+        </h1>
+        <h5 style="margin-bottom: 2rem; font-size: 18px;">
             {{ target_user.profile.message }}
         </h5>
-        {% else %}
+
+        <p>
             {% if target_user == user %}
-            <a href="{% url 'profileapp:create' %}">
-                <h2>
-                    Create Profile
-                </h2>
-            </a>
+            <a class="btn btn-dark left" style="width: 100%; margin: 5px;" href="{% url 'profileapp:update' pk=target_user.profile.pk %}"> Edit your profile </a>
             {% endif %}
+        </p>
+
+        {% else %}
+        {% if target_user == user %}
+        <a class="btn btn-dark left" style="width: 100%; margin: 5px;" href="{% url 'profileapp:create' %}"> Create Profile </a>
+        {% endif %}
         {% endif %}
 
         {% if target_user == user %}
-        <a href="{% url 'accountapp:update' pk=user.pk %}">
-            <p>
-                Change Info
-            </p>
-        </a>
-        <a href="{% url 'accountapp:delete' pk=user.pk %}">
-            <p>
-                Quit
-            </p>
-        </a>
+        <a class="btn btn-dark left" style="width: 100%; margin: 5px;" href="{% url 'profileapp:update' pk=user.pk %}"> Change Info </a>
+        <a class="btn btn-danger left" style="width: 100%; margin: 5px;" href="{% url 'accountapp:delete' pk=user.pk %}"> Delete </a>
         {% endif %}
     </div>
 </div>

@@ -6,6 +6,7 @@ from django.contrib import messages
 from .models import Poll, Choice, Vote
 from .forms import PollAddForm, EditPollForm, ChoiceAddForm
 from django.http import HttpResponse
+import pandas as pd
 
 
 # https://github.com/devmahmud/Django-Poll-App/tree/master
@@ -26,6 +27,15 @@ def polls_list(request):
         search_term = request.GET['search']
         all_polls = all_polls.filter(text__icontains=search_term)
 
+    res = {}
+    for poll in all_polls:
+        d = {}
+        for choice in poll.choice_set.all():
+            d[choice.choice_text] = choice.get_vote_count
+        res[poll.text] = d
+
+    res = pd.DataFrame(res).T.astype(int)
+
     paginator = Paginator(all_polls, 6)  # Show 6 contacts per page
     page = request.GET.get('page')
     polls = paginator.get_page(page)
@@ -37,8 +47,12 @@ def polls_list(request):
         'polls': polls,
         'params': params,
         'search_term': search_term,
+        'date': res.index.tolist(),
+        'long': res['long'].tolist(),
+        'short': res['short'].tolist(),
+        'sideway': res['sideway'].tolist(),
     }
-    return render(request, 'polls/polls_list.html', context)
+    return render(request, 'polls/index.html', context)
 
 
 @login_required()
@@ -52,7 +66,7 @@ def list_by_user(request):
     context = {
         'polls': polls,
     }
-    return render(request, 'polls/polls_list.html', context)
+    return render(request, 'polls/index.html', context)
 
 
 @login_required()
@@ -72,7 +86,7 @@ def polls_add(request):
                 messages.success(
                     request, "Poll & Choices added successfully.", extra_tags='alert alert-success alert-dismissible fade show')
 
-                return redirect('polls:list')
+                return redirect('polls:index')
         else:
             form = PollAddForm()
         context = {
@@ -95,7 +109,7 @@ def polls_edit(request, poll_id):
             form.save()
             messages.success(request, "Poll Updated successfully.",
                              extra_tags='alert alert-success alert-dismissible fade show')
-            return redirect("polls:list")
+            return redirect("polls:index")
 
     else:
         form = EditPollForm(instance=poll)
@@ -111,7 +125,7 @@ def polls_delete(request, poll_id):
     poll.delete()
     messages.success(request, "Poll Deleted successfully.",
                      extra_tags='alert alert-success alert-dismissible fade show')
-    return redirect("polls:list")
+    return redirect("polls:index")
 
 
 @login_required
@@ -195,7 +209,7 @@ def poll_vote(request, poll_id):
     if not poll.user_can_vote(request.user):
         messages.error(
             request, "You already voted this poll!", extra_tags='alert alert-warning alert-dismissible fade show')
-        return redirect("polls:list")
+        return redirect("polls:index")
 
     if choice_id:
         choice = Choice.objects.get(id=choice_id)

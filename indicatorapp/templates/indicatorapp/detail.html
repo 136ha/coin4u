@@ -1,0 +1,792 @@
+{% extends 'base.html' %}}
+{% load bootstrap5 %}
+{% bootstrap_css %}
+{% bootstrap_javascript %}
+{% bootstrap_messages %}
+{% load static %}
+
+{% block content %}
+
+<div class="container mt-3">
+    <div style="width:100%;">
+        <form action="{% url 'indicatorapp:detail' %}" method="get">
+            <label style="width: 100%;">
+                <input style="width:100%; float:left; right-margin: 1%;" id="searchQueryInput" class="form-control" list="datalistOptions" name="ticker" placeholder={{ ticker }}>
+                <datalist id="datalistOptions" class="searchQuerySubmit">
+                    {% for symbol in symbol_list %}
+                    <option>{{ symbol }}</option>
+                    {% endfor %}
+                </datalist>
+                <button id="searchQuerySubmit" name="searchQuerySubmit" class="btn btn-primary" type="submit"><i class="bi bi-search"></i></button>
+            </label>
+        </form>
+    </div>
+
+    <div style="width:100%; padding: 20px 5px;">
+        <table class="summary_table">
+            <tr>
+                <td class="summary_result">
+                    <h5 style="text-align: center; font-size: 40px;">{{ summary_result }}</h5>
+                </td>
+            </tr>
+            <tr>
+                {% for title, content in technical_analysis_content.items %}
+                {% if content == 'Overbought' or content == 'Sell' or content == 'Low trend' %}
+                <td class="Overbought_title">
+                    <h5 class="sum_title_text">{{ title }}</h5>
+                </td>
+                {% elif content == 'Oversold' or content == 'Buy' or content == 'Strong trend' %}
+                <td class="Oversold_title">
+                    <h5 class="sum_title_text">{{ title }}</h5>
+                </td>
+                {% else %}
+                <td class="Normal_title">
+                    <h5 class="sum_title_text">{{ title }}</h5>
+                </td>
+                {% endif %}
+                {% endfor %}
+            </tr>
+            <tr>
+                {% for title, content in technical_analysis_content.items %}
+                {% if content == 'Overbought' or content == 'Sell' or content == 'Low trend' %}
+                <td class="Overbought_title">
+                    <h5 class="sum_content_text">{{ content }}</h5>
+                </td>
+                {% elif content == 'Oversold' or content == 'Buy' or content == 'Strong trend' %}
+                <td class="Oversold_title">
+                    <h5 class="sum_content_text">{{ content }}</h5>
+                </td>
+                {% else %}
+                <td class="Normal_title">
+                    <h5 class="sum_content_text">{{ content }}</h5>
+                </td>
+                {% endif %}
+                {% endfor %}
+            </tr>
+        </table>
+    </div>
+
+    <div>
+        <div style="width:50%; float:left; padding: 20px 5px;">
+            <h5 style="text-align: center;">RSI : {{ technical_analysis_numbers.RSI }}</h5>
+            <canvas id="rsi-chart" style="width:100%;"></canvas>
+            <script>
+                const rsi_ctx = document.getElementById('rsi-chart');
+                new Chart(rsi_ctx, {
+                    type: 'line',
+                    data: {
+                        labels: {{ technical_analysis_dataset.index|safe }},
+                        datasets: {{ technical_analysis_dataset.rsi|safe }},
+                    },
+                    options: {
+                        elements: {
+                            point: {
+                                radius: 0,
+                            },
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    callback: function(val, index) {
+                                        return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                                    },
+                                },
+                            },
+                            Close: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                            },
+                            RSI: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                stacked: true,
+                            },
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    pointStyle: 'line',
+                                    usePointStyle: true,
+                                }
+                            }
+                        },
+                    },
+                });
+            </script>
+        </div>
+        <div style="width:50%; float:right; padding: 20px 5px;">
+            <h5 style="text-align: center;">CCI : {{ technical_analysis_numbers.CCI }}</h5>
+            <canvas id="cci-chart" style="width:100%;"></canvas>
+            <script>
+                const cci_ctx = document.getElementById('cci-chart');
+                new Chart(cci_ctx, {
+                    type: 'line',
+                    data: {
+                        labels: {{ technical_analysis_dataset.index|safe }},
+                        datasets: {{ technical_analysis_dataset.cci|safe }},
+                    },
+                    options: {
+                        elements: {
+                            point: {
+                                radius: 0,
+                            },
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    callback: function(val, index) {
+                                        return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                                    },
+                                },
+                            },
+                            Close: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                            },
+                            CCI: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                stacked: true,
+                            },
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    pointStyle: 'line',
+                                    usePointStyle: true,
+                                }
+                            }
+                        },
+                    },
+                });
+            </script>
+        </div>
+    </div>
+
+    <div>
+        <div style="width:50%; float:left; padding: 20px 5px;">
+            <h5 style="text-align: center;">MACD : {{ technical_analysis_numbers.MACD }}</h5>
+            <canvas id="macd-chart" style="width:100%;"></canvas>
+            <script>
+                const macd_ctx = document.getElementById('macd-chart');
+                new Chart(macd_ctx, {
+                    type: 'line',
+                    data: {
+                        labels: {{ technical_analysis_dataset.index|safe }},
+                        datasets: {{ technical_analysis_dataset.macd|safe }},
+                    },
+                    options: {
+                        elements: {
+                            point: {
+                                radius: 0,
+                            },
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    callback: function(val, index) {
+                                        return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                                    },
+                                },
+                            },
+                            Close: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                            },
+                            macd: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                stacked: true,
+                            },
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    pointStyle: 'line',
+                                    usePointStyle: true,
+                                }
+                            }
+                        },
+                    },
+                });
+            </script>
+        </div>
+        <div style="width:50%; float:right; padding: 20px 5px;">
+            <h5 style="text-align: center;">Stochastic : {{ technical_analysis_numbers.STOCHASTIC }}</h5>
+            <canvas id="stoc-chart" style="width:100%;"></canvas>
+            <script>
+                const stoc_ctx = document.getElementById('stoc-chart');
+                new Chart(stoc_ctx, {
+                    type: 'line',
+                    data: {
+                        labels: {{ technical_analysis_dataset.index|safe }},
+                        datasets: {{ technical_analysis_dataset.stochastic|safe }},
+                    },
+                    options: {
+                        elements: {
+                            point: {
+                                radius: 0,
+                            },
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    callback: function(val, index) {
+                                        return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                                    },
+                                },
+                            },
+                            Close: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                            },
+                            fast_k: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                stacked: true,
+                            },
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    pointStyle: 'line',
+                                    usePointStyle: true,
+                                }
+                            }
+                        },
+                    },
+                });
+            </script>
+        </div>
+    </div>
+
+    <div>
+        <div style="width:50%; float:left; padding: 20px 5px;">
+            <h5 style="text-align: center;">MFI : {{ technical_analysis_numbers.MFI }}</h5>
+            <canvas id="mfi-chart" style="width:100%;"></canvas>
+            <script>
+                const mfi_ctx = document.getElementById('mfi-chart');
+                new Chart(mfi_ctx, {
+                    type: 'line',
+                    data: {
+                        labels: {{ technical_analysis_dataset.index|safe }},
+                        datasets: {{ technical_analysis_dataset.mfi|safe }},
+                    },
+                    options: {
+                        elements: {
+                            point: {
+                                radius: 0,
+                            },
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    callback: function(val, index) {
+                                        return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                                    },
+                                },
+                            },
+                            Close: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                            },
+                            mfi: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                stacked: true,
+                            },
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    pointStyle: 'line',
+                                    usePointStyle: true,
+                                }
+                            }
+                        },
+                    },
+                });
+            </script>
+        </div>
+        <div style="width:50%; float:right; padding: 20px 5px;">
+            <h5 style="text-align: center;">ADX : {{ technical_analysis_numbers.ADX }}</h5>
+            <canvas id="adx-chart" style="width:100%;"></canvas>
+            <script>
+                const adx_ctx = document.getElementById('adx-chart');
+                new Chart(adx_ctx, {
+                    type: 'line',
+                    data: {
+                        labels: {{ technical_analysis_dataset.index|safe }},
+                        datasets: {{ technical_analysis_dataset.adx|safe }},
+                    },
+                    options: {
+                        elements: {
+                            point: {
+                                radius: 0,
+                            },
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    callback: function(val, index) {
+                                        return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                                    },
+                                },
+                            },
+                            Close: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                            },
+                            adx: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                stacked: true,
+                            },
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    pointStyle: 'line',
+                                    usePointStyle: true,
+                                }
+                            }
+                        },
+                    },
+                });
+            </script>
+        </div>
+    </div>
+
+    <div style="width:100%; padding: 20px 5px;">
+        <h5 style="text-align: center;">Top 10 Most Similar to {{ ticker }}</h5>
+        <canvas id="with-bar-chart" style="width:100%; max-height: 300px;"></canvas>
+        <script>
+            const with_bar = document.getElementById('with-bar-chart');
+            new Chart(with_bar, {
+                type: 'bar',
+                data: {
+                    labels: {{ with_index|safe }},
+                    datasets: [{
+                        label: 'similarity',
+                        data: {{ with_value|safe }},
+                        barThickness: 30,
+                        backgroundColor: '#80FF00',
+                    }],
+                },
+                options: {
+                    interaction: {
+                        intersect: false,
+                        mode: 'index',
+                    },
+                    plugins: {
+                        legend: {
+                            display: false,
+                        },
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                display: false,
+                            },
+                        },
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                pointStyle: 'line',
+                                usePointStyle: true,
+                            }
+                        }
+                    },
+                },
+            });
+        </script>
+    </div>
+
+    <div>
+        <div style="width:50%; float:left; padding: 20px 5px;">
+            <h5 style="text-align: center;">Most similar to {{ ticker }}</h5>
+            <canvas id="similar-chart" style="width:100%;"></canvas>
+            <script>
+                const ctx1 = document.getElementById('similar-chart');
+                new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: {{ ticker_index|safe }},
+                        datasets: {{ dataset_for_with|safe }},
+                    },
+                    options: {
+                        elements: {
+                            point: {
+                                radius: 0,
+                            },
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    callback: function(val, index) {
+                                        return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                                    },
+                                },
+                            },
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    pointStyle: 'line',
+                                    usePointStyle: true,
+                                }
+                            }
+                        },
+                    },
+                });
+            </script>
+        </div>
+        <div style="width:50%; float:right; padding: 20px 5px;">
+            <h5 style="text-align: center;">Least similar to {{ ticker }}</h5>
+            <canvas id="differ-chart" style="width:100%;"></canvas>
+            <script>
+                const ctx2 = document.getElementById('differ-chart');
+                new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: {{ ticker_index|safe }},
+                        datasets: {{ dataset_for_anti|safe }},
+                    },
+                    options: {
+                        elements: {
+                            point: {
+                                radius: 0,
+                            },
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index',
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    callback: function(val, index) {
+                                        return index % 2 === 0 ? this.getLabelForValue(val) : '';
+                                    },
+                                },
+                            },
+                        },
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    pointStyle: 'line',
+                                    usePointStyle: true,
+                                }
+                            }
+                        },
+                    },
+                });
+            </script>
+        </div>
+    </div>
+
+    <div>
+        {% if ticker in sector_stocks %}
+        <div class="w3-row-padding w3-margin-top">
+            <div class="w3-third">
+                <div class="w3-card-2">
+                    <div class="w3-container">
+                        <h5>Income and Expenses</h5>
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <td><B>year</B></td>
+                                <td><B>revenue</B></td>
+                                <td><B>cost&exp</B></td>
+                                <td><B>net income</B></td>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for fs in financial_statement %}
+                            <tr>
+                                <td>{{ fs.year }}</td>
+                                <td>${{ fs.revenue }}</td>
+                                <td>${{ fs.cost_and_expenses }}</td>
+                                <td>${{ fs.net_income }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w3-third">
+                <div class="w3-card-2">
+                    <div class="w3-container">
+                        <h5>Balance Sheet</h5>
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <td><B>year</B></td>
+                                <td><B>current assets</B></td>
+                                <td><B>current liabilities</B></td>
+                                <td><B>non-current liabilities</B></td>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for fs in financial_statement %}
+                            <tr>
+                                <td>{{ fs.year }}</td>
+                                <td>${{ fs.total_current_assets }}</td>
+                                <td>${{ fs.total_current_liabilities }}</td>
+                                <td>${{ fs.total_non_current_liabilities }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w3-third">
+                <div class="w3-card-2">
+                    <div class="w3-container">
+                        <h5>Cash Flow</h5>
+                        <table class="table table-striped">
+                            <thead>
+                            <tr>
+                                <td><B>year</B></td>
+                                <td><B>from operations</B></td>
+                                <td><B>from investing</B></td>
+                                <td><B>from financing</B></td>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for fs in financial_statement %}
+                            <tr>
+                                <td>{{ fs.year }}</td>
+                                <td>${{ fs.cash_flow_from_operations }}</td>
+                                <td>${{ fs.cash_flow_from_investing }}</td>
+                                <td>${{ fs.cash_flow_from_financing }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div style="width:25%; float:left; padding: 20px 5px;">
+                <h5 style="text-align: center;">gross profit of Similar enterprise</h5>
+                <canvas id="gross-profit-chart" style="width:100%;"></canvas>
+                <script>
+                    const ctx3 = document.getElementById('gross-profit-chart');
+                    new Chart(ctx3, {
+                        type: 'line',
+                        data: {
+                            labels: {{ financial_statement_index|safe }},
+                            datasets: {{ dataset_for_gross_profit|safe }},
+                        },
+                        options: {
+                            elements: {
+                                point: {
+                                    radius: 0,
+                                },
+                            },
+                            scales: {
+                                yAxes: [{
+                                    ticks: {
+                                        beginAtZero:true
+                                    }
+                                }]
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        pointStyle: 'line',
+                                        usePointStyle: true,
+                                    }
+                                }
+                            },
+                        },
+                    });
+                </script>
+            </div>
+            <div style="width:25%; float:right; padding: 20px 5px;">
+                <h5 style="text-align: center;">EBITDA ratio of Similar enterprise</h5>
+                <canvas id="EBITDA-chart" style="width:100%;"></canvas>
+                <script>
+                    const ctx4 = document.getElementById('EBITDA-chart');
+                    new Chart(ctx4, {
+                        type: 'line',
+                        data: {
+                            labels: {{ financial_statement_index|safe }},
+                            datasets: {{ dataset_for_EBITDA|safe }},
+                        },
+                        options: {
+                            elements: {
+                                point: {
+                                    radius: 0,
+                                },
+                            },
+                            scales: {
+                                yAxes: [{
+                                    ticks: {
+                                        beginAtZero:true
+                                    }
+                                }]
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        pointStyle: 'line',
+                                        usePointStyle: true,
+                                    }
+                                }
+                            },
+                        },
+                    });
+                </script>
+            </div>
+            <div style="width:25%; float:left; padding: 20px 5px;">
+                <h5 style="text-align: center;">operating income ratio of Similar enterprise</h5>
+                <canvas id="operating_income-chart" style="width:100%;"></canvas>
+                <script>
+                    const ctx5 = document.getElementById('operating_income-chart');
+                    new Chart(ctx5, {
+                        type: 'line',
+                        data: {
+                            labels: {{ financial_statement_index|safe }},
+                            datasets: {{ dataset_for_operating_income|safe }},
+                        },
+                        options: {
+                            elements: {
+                                point: {
+                                    radius: 0,
+                                },
+                            },
+                            scales: {
+                                yAxes: [{
+                                    ticks: {
+                                        beginAtZero:true
+                                    }
+                                }]
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        pointStyle: 'line',
+                                        usePointStyle: true,
+                                    }
+                                }
+                            },
+                        },
+                    });
+                </script>
+            </div>
+            <div style="width:25%; float:right; padding: 20px 5px;">
+                <h5 style="text-align: center;">net income ratio of Similar enterprise</h5>
+                <canvas id="net-income-chart" style="width:100%;"></canvas>
+                <script>
+                    const ctx6 = document.getElementById('net-income-chart');
+                    new Chart(ctx6, {
+                        type: 'line',
+                        data: {
+                            labels: {{ financial_statement_index|safe }},
+                            datasets: {{ dataset_for_net_income|safe }},
+                        },
+                        options: {
+                            responsive: true,
+                            elements: {
+                                point: {
+                                    radius: 0,
+                                },
+                            },
+                            scales: {
+                                yAxes: [{
+                                    ticks: {
+                                        beginAtZero:true
+                                    }
+                                }]
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: {
+                                        pointStyle: 'line',
+                                        usePointStyle: true,
+                                    }
+                                }
+                            },
+                        },
+                    });
+                </script>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

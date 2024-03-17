@@ -4,8 +4,3 @@ from coin4u import settings
 class PollsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'polls'
-
-    def ready(self):
-        if settings.SCHEDULER_DEFAULT:
-            from . import runapscheduler
-            runapscheduler.handle()

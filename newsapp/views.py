@@ -1,4 +1,5 @@
 # https://medium.com/@dorianszafranski17/create-a-news-platform-in-django-f7b66f69be95
+import datetime
 
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView
@@ -17,11 +18,13 @@ class NewsView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        article = Article.objects.all()
+        enddate = datetime.datetime.today()
+        startdate = enddate - datetime.timedelta(days=7)
+        article = Article.objects.filter(pub_date__range=[startdate, enddate]).order_by('-pub_date')
         context['article'] = article
 
         # ================= CHART 1 =================
-        article = pd.DataFrame(list(Article.objects.all().values()))
+        article = pd.DataFrame(list(article.values()))
         counts = Counter(sum(list(article['keywords'].apply(lambda x: [a['value'] for a in x.values()])), []))
         count_dic = sorted(counts.items(), key=lambda pair: pair[1], reverse=True)
         keyword = []
@@ -38,8 +41,9 @@ class NewsView(ListView):
         neg_score = []
         neu_score = []
         pos_score = []
+        article['keywords'] = article['keywords'].astype(str)
         for word in keyword:
-            temp = article[article['keywords'].astype(str).str.contains(word)]
+            temp = article[article['keywords'].str.contains(word)]
             if len(temp) == 0:
                 continue
             high_ranked.append(word)
@@ -96,8 +100,8 @@ def crawler(request):
         results=30,  # Return 30 articles
         # Search for articles in January and February 2019
         dates={
-            "begin": datetime.datetime(2024, 1, 1),
-            "end": datetime.datetime(2024, 2, 1)
+            "begin": datetime.datetime(2024, 3, 15),
+            "end": datetime.datetime(2024, 3, 16)
         },
         options={
             "sort": "oldest",  # Sort by oldest options
